@@ -3,7 +3,7 @@
 enable_testing()
 
 add_executable(main_test "main_test.cpp")
-target_link_libraries(main_test GTest::gtest_main)
+target_link_libraries(main_test GTest::gtest_main main)
 
 include(GoogleTest)
 gtest_discover_tests(main_test)

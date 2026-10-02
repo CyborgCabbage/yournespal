@@ -12,4 +12,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project ("main")
 
 add_subdirectory(src)
+add_subdirectory(cmd)
 add_subdirectory(tests)
