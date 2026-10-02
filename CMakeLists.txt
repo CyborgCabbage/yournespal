@@ -1,7 +1,4 @@
-﻿# CMakeList.txt : CMake project for yournespal, include source and define
-# project specific logic here.
-#
-cmake_minimum_required (VERSION 3.23)
+﻿cmake_minimum_required (VERSION 3.23)
 
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
@@ -14,16 +11,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project ("main")
 
-find_package(Eigen3 CONFIG REQUIRED)
-find_package(GTest CONFIG REQUIRED)
-
-add_executable (main "src/main.cpp")
-target_link_libraries (main PRIVATE Eigen3::Eigen)
-
-enable_testing()
-
-add_executable(main_test "src/main.test.cpp")
-target_link_libraries(main_test GTest::gtest_main)
-
-include(GoogleTest)
-gtest_discover_tests(main_test)
+add_subdirectory(src)
+add_subdirectory(tests)
