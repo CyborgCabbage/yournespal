@@ -1,0 +1,17 @@
+﻿What will the application do?
+Compile a "Project" which contains raw art assets into a format which can consumed by nesfab or other tools
+Instead of having a default mode of operation, everything will be defined through config files
+If config files do not exist or don't have the necessary options specified, the command line application will do Q&A to fill in the config
+
+Input Files:
+Image Files
+Config Files
+Nes Palette (have an internal default )
+
+Output files:
+Pattern Tables (One file for each bank or all together?)
+Name Table (One for each sprite, should be optional)
+Palette (1 Background, 4 * 3 colour palettes)
+
+Components:
+NES Palette loader: Load nes palette 
