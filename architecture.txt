@@ -13,5 +13,56 @@ Pattern Tables (One file for each bank or all together?)
 Name Table (One for each sprite, should be optional)
 Palette (1 Background, 4 * 3 colour palettes)
 
-Components:
-NES Palette loader: Load nes palette 
+Jobs:
+Load NES palette from file (have internal default, packed into exe maybe?)
+Take image at convert it to a specified number of NES palettes (select background color if it was not predefined)
+PNG Types:
+	Paletted:
+		4 Colours (Pattern table directly) -> To pattern table and name table (optional, only needed if tiles are consolidated) and 1 palette (optional)
+		4 * n Colours (Pattern table directly + different attributes) -> To pattern table and name table
+		64 Colours (NES Palette)
+		Other Paletted -> 
+	Raw:
+		Count unique colors to see if it is indexed
+
+Convert PNG to pattern table:
+Load sprite
+Check it conforms to 8x8
+Check that it only has 4 colours
+Output to pattern bank
+
+Consildate Duplicate Tiles:
+Load Sprite
+Check it conforms to 8x8
+Check that it only has 4 colours
+Consolidate duplicate tiles
+Output to pattern bank
+Output name table to reconstruct original sprite
+
+Consolidate Multiple Sprites:
+Multiple sprites are loaded
+See "Consildate Duplicate Tiles"
+Output pattern bank
+Output multiple name tables
+
+Use Dependency:
+We configure that this sprites bank will be loaded in slot 3 and we can use banks from sprite x and y that will be loaded in bank 0 and 1
+When we consolidate tiles, we can consolidate tiles into the fixed dependencies
+
+Lossless Consolidation:
+Fixed Tiles: We can pull tiles from these but not modify
+Shared Tiles: We can modify these but these are shared with other sprites
+Our Tiles: Tiles we have exclusive right to
+A fixed bank may have some spare tiles which we could overflow into, but only if our need is legitimate
+
+Lossy Consolidation:
+Given a max number of tiles allowed (banks), reduce the tiles used by this sprite to fit in that number
+We will need to do this last, so we know exactly what fixed tiles we have access to
+A change from the python program is that the scored elimination must reduce to 256 (or some other limit) + any number of fixed tiles
+
+Importance:
+We will want to mark some areas of a sprite as more important, requiring greater accuracy
+
+Bit-planes:
+Tiles that only use one colour + background could be "overlapped" so by using a different palette a different bit plane is exposed
+But this requires a dedicated palette (0011 or 0101 depending on the bitplane)
