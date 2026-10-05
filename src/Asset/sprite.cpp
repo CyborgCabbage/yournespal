@@ -1,4 +1,5 @@
 #include "sprite.h"
+#include <Core/log.h>
 
 // List of common image formats that are not supported
 std::vector<std::string> unsupportedImageFormats{
@@ -24,7 +25,7 @@ std::expected<Sprite, LoadSpriteError> Sprite::TryLoadSprite(const std::filesyst
 	if (ext != ".png") {
 		// Warn user if they are using an unknown image format
 		if (auto result = std::ranges::find(unsupportedImageFormats, ext); result != unsupportedImageFormats.end()) {
-			std::println("Image format is not supported, use .png");
+			ynp::LogLn("Warning: {0} Image format is not supported, use .png", path.string());
 			return std::unexpected(LoadSpriteError::UNSUPPORTED_FORMAT);
 		}
 		return std::unexpected(LoadSpriteError::NOT_IMAGE);
@@ -32,13 +33,13 @@ std::expected<Sprite, LoadSpriteError> Sprite::TryLoadSprite(const std::filesyst
 	// Load file into memory
 	std::vector<unsigned char> png;
 	if (unsigned error = lodepng::load_file(png, path.string())) {
-		std::println(lodepng_error_text(error));
+		ynp::LogLn("Error: {0} {1}", path.string(), lodepng_error_text(error));
 		return std::unexpected(LoadSpriteError::LOAD_FAILED);
 	}
 	// Decode PNG data (doesn't impose any format restriction or conversions)
 	SpriteData sd;
 	if (unsigned error = lodepng::decode(sd.data, sd.width, sd.height, sd.state, png)) {
-		std::println(lodepng_error_text(error));
+		ynp::LogLn("Error: {0} {1}", path.string(), lodepng_error_text(error));
 		return std::unexpected(LoadSpriteError::DECODE_FAILED);
 	}
 

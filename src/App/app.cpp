@@ -1,28 +1,41 @@
 #include "app.h"
 
 #include <Asset/sprite.h>
+#include <Core/log.h>
 
-void Application::Run(int argc, char* argv[])
+std::optional<ApplicationRunError> Application::Run(const std::vector<std::string_view>& arguments)
 {
-	std::println("Current working directory: {0}", std::filesystem::current_path().string());
-	if (argc < 2) {
-		std::println("Not enough arguments, specify target directory (use . for current directory)");
-		return;
+	ynp::LogLn("Log: Current working directory {0}", std::filesystem::current_path().string());
+	if (arguments.size() == 0) {
+		ynp::LogLn("Error: Not enough arguments, specify target directory (use . for current directory)");
+		return ApplicationRunError::NOT_ENOUGH_ARGUMENTS;
 	}
-	auto target = std::filesystem::path(argv[1]);
-	if (!std::filesystem::exists(target)) {
-		std::println("Directory \"{0}\" does not exist", target.string());
-		return;
+	auto target = std::filesystem::path(arguments[0]);
+	auto result = LoadSprites(target);
+	if (!result.has_value()) {
+		return result.error();
 	}
+	std::vector<Sprite> sprites = result.value();
+	return std::nullopt;
+}
+
+std::expected<std::vector<Sprite>, ApplicationRunError> Application::LoadSprites(const std::filesystem::path& path)
+{
+	// Check that directory exists
+	if (!std::filesystem::exists(path)) {
+		ynp::LogLn("Directory \"{0}\" does not exist", path.string());
+		return std::unexpected(ApplicationRunError::TARGET_DIR_DOES_NOT_EXIST);
+	}
+	// Iterate files and load sprites
 	std::vector<Sprite> sprites;
-	for (const auto& entry : std::filesystem::directory_iterator(target)) {
+	for (const auto& entry : std::filesystem::directory_iterator(path)) {
 		auto result = Sprite::TryLoadSprite(entry.path());
 		if (result.has_value()) {
 			sprites.emplace_back(*result);
 		}
 		else if (result.error() == LoadSpriteError::DECODE_FAILED || result.error() == LoadSpriteError::LOAD_FAILED) {
-			std::println("Ending program due to error");
-			return;
+			return std::unexpected(ApplicationRunError::DATA_ERROR);
 		}
 	}
+	return sprites;
 }

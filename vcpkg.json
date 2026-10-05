@@ -3,5 +3,6 @@
     "eigen3",
     "gtest",
     "lodepng"
-  ]
+  ],
+  "builtin-baseline": "13465a7b726f171350defa5368b901a52f7a6af5"
 }
