@@ -11,6 +11,7 @@ struct SpriteData {
 };
 
 enum class LoadSpriteError {
+	NOT_IMAGE,
 	UNSUPPORTED_FORMAT,
 	LOAD_FAILED,
 	DECODE_FAILED
@@ -18,7 +19,7 @@ enum class LoadSpriteError {
 
 class Sprite {
 public:
-	static std::expected<Sprite, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
+	static ynp::Expected<Sprite, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
 private:
 	Sprite(SpriteData data, std::filesystem::path path);
 	SpriteData data_;

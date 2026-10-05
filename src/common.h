@@ -17,3 +17,5 @@
 
 #include <Eigen/Eigen>
 #include <lodepng.h>
+
+#include <Error/error.h>

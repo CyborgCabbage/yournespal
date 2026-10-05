@@ -10,31 +10,35 @@ std::vector<std::string> unsupportedImageFormats{
 	".pcx",
 };
 
-std::expected<Sprite, LoadSpriteError> Sprite::TryLoadSprite(const std::filesystem::path& path)
+ynp::Expected<Sprite, LoadSpriteError> Sprite::TryLoadSprite(const std::filesystem::path& path)
 {
-	// TEST: Directory or file with no extension
+	// Ignore directories and extensionless files
 	if (!path.has_extension()) {
-		return std::unexpected(LoadSpriteError::UNSUPPORTED_FORMAT);
+		return ynp::Unexpected(LoadSpriteError::NOT_IMAGE);
 	}
+	// Check if a file is not a png
+	// (TryLoadSprite is ran on every file in the directory so this will trigger often)
 	auto ext = path.extension().string();
-	// TEST: Capitalised extension name?
+	// Case normalisation
+	std::ranges::transform(ext, ext.begin(), [](unsigned char c) { return std::tolower(c); });
 	if (ext != ".png") {
 		// Warn user if they are using an unknown image format
 		if (auto result = std::ranges::find(unsupportedImageFormats, ext); result != unsupportedImageFormats.end()) {
-			std::println("Image format of {0} is not supported, use .png", path.string());
+			return ynp::Unexpected(LoadSpriteError::UNSUPPORTED_FORMAT, "Image format is not supported, use .png");
 		}
-		return std::unexpected(LoadSpriteError::UNSUPPORTED_FORMAT);
+		return ynp::Unexpected(LoadSpriteError::NOT_IMAGE);
 	}
+	// Load file into memory
 	std::vector<unsigned char> png;
 	if (unsigned error = lodepng::load_file(png, path.string())) {
-		std::println("lodepng: Failed to load {0}, error {1} - {2}", path.string(), error, lodepng_error_text(error));
-		return std::unexpected(LoadSpriteError::LOAD_FAILED);
+		return ynp::Unexpected(LoadSpriteError::LOAD_FAILED, lodepng_error_text(error));
 	}
+	// Decode PNG data (doesn't impose any format restriction or conversions)
 	SpriteData sd;
 	if (unsigned error = lodepng::decode(sd.data, sd.width, sd.height, sd.state, png)) {
-		std::println("lodepng: Failed to decode {0}, error {1} - {2}", path.string(), error, lodepng_error_text(error));
-		return std::unexpected(LoadSpriteError::DECODE_FAILED);
+		return ynp::Unexpected(LoadSpriteError::DECODE_FAILED, lodepng_error_text(error));
 	}
+
 	return Sprite(sd, path);
 }
 
