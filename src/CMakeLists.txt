@@ -1,7 +1,10 @@
 ﻿find_package(Eigen3 CONFIG REQUIRED)
+find_package(lodepng CONFIG REQUIRED)
 
-add_library (main STATIC "example.cpp")
-target_link_libraries (main PRIVATE Eigen3::Eigen)
+add_library (main STATIC "App/app.cpp" "Asset/sprite.cpp")
+target_link_libraries(main PRIVATE Eigen3::Eigen)
+target_link_libraries(main PUBLIC lodepng)
+target_precompile_headers(main PRIVATE "common.h")
 
 target_include_directories(main PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
