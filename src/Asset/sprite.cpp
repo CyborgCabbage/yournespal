@@ -47,7 +47,7 @@ std::expected<Sprite, LoadSpriteError> Sprite::TryLoadSprite(const std::filesyst
 }
 
 Sprite::Sprite(SpriteData data, std::filesystem::path path) :
-	data_(data),
-	path_(path)
+	data(data),
+	path(path)
 {
 }

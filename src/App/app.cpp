@@ -3,6 +3,23 @@
 #include <Asset/sprite.h>
 #include <Core/log.h>
 
+struct Pixel {
+	auto operator<=>(const Pixel&) const = default;
+	uint8_t R = 0;
+	uint8_t G = 0;
+	uint8_t B = 0;
+	uint8_t A = 0;
+};
+
+template<>
+struct std::hash<Pixel>
+{
+	std::size_t operator()(const Pixel& s) const noexcept
+	{
+		return std::hash<uint32_t>{}(std::bit_cast<uint32_t>(s));
+	}
+};
+
 std::optional<ApplicationRunError> Application::Run(const std::vector<std::string_view>& arguments)
 {
 	ynp::LogLn("Log: Current working directory {0}", std::filesystem::current_path().string());
@@ -16,6 +33,14 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 		return result.error();
 	}
 	std::vector<Sprite> sprites = result.value();
+	for (const auto& spr : sprites) {
+		std::unordered_set<Pixel> colours;
+		auto& d = spr.data.data;
+		for (int i = 0; i < d.size(); i += 4) {
+			colours.insert(Pixel(d[i], d[i + 1], d[i + 2], d[i + 3]));
+		}
+		ynp::LogLn("Log: There were {0} unique colours", colours.size());
+	}
 	return std::nullopt;
 }
 

@@ -19,9 +19,9 @@ enum class LoadSpriteError {
 
 class Sprite {
 public:
-	static std::expected<Sprite, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
-private:
 	Sprite(SpriteData data, std::filesystem::path path);
-	SpriteData data_;
-	std::filesystem::path path_;
+	SpriteData data;
+	std::filesystem::path path;
+
+	static std::expected<Sprite, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
 };
