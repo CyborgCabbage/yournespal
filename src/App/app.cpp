@@ -20,15 +20,9 @@ void Application::Run(int argc, char* argv[])
 		if (result.has_value()) {
 			sprites.emplace_back(*result);
 		}
-		else {
-			if (!result.error().str.empty()) {
-				std::println("Error loading sprite {0}: {1}", entry.path().string(), result.error().str);
-			}
-			if (result.error() == LoadSpriteError::DECODE_FAILED || result.error() == LoadSpriteError::LOAD_FAILED) {
-				std::println("Ending program due to error");
-				return;
-			}
+		else if (result.error() == LoadSpriteError::DECODE_FAILED || result.error() == LoadSpriteError::LOAD_FAILED) {
+			std::println("Ending program due to error");
+			return;
 		}
 	}
-
 }

@@ -19,7 +19,7 @@ enum class LoadSpriteError {
 
 class Sprite {
 public:
-	static ynp::Expected<Sprite, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
+	static std::expected<Sprite, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
 private:
 	Sprite(SpriteData data, std::filesystem::path path);
 	SpriteData data_;
