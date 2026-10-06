@@ -34,6 +34,7 @@ std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(c
 		return std::unexpected(ApplicationRunError::TARGET_DIR_DOES_NOT_EXIST);
 	}
 	// Iterate files and load images
+	bool encounteredError = false;
 	std::vector<Image> images;
 	for (const auto& entry : std::filesystem::directory_iterator(path)) {
 		auto result = Image::FromFile(entry.path());
@@ -41,8 +42,13 @@ std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(c
 			images.emplace_back(std::move(*result));
 		}
 		else if (result.error() == LoadImageError::DECODE_FAILED || result.error() == LoadImageError::LOAD_FAILED) {
-			return std::unexpected(ApplicationRunError::DATA_ERROR);
+			// Use flag instead of returning here becuase we want to provide the user with 
+			// all the log messages for every image tried to load, not just stopping at the first
+			encounteredError = true;
 		}
+	}
+	if (encounteredError) {
+		return std::unexpected(ApplicationRunError::DATA_ERROR);
 	}
 	return images;
 }
