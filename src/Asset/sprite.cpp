@@ -1,6 +1,31 @@
 #include "sprite.h"
 #include <Core/log.h>
 
+template<>
+struct std::hash<Pixel>
+{
+	std::size_t operator()(const Pixel& s) const noexcept
+	{
+		return std::hash<uint32_t>{}(std::bit_cast<uint32_t>(s));
+	}
+};
+
+template <>
+struct std::formatter<Pixel> : std::formatter<std::string> {
+	auto format(Pixel p, format_context& ctx) const {
+		return formatter<string>::format(std::format("({}, {}, {}, {})", p.r, p.g, p.b, p.a), ctx);
+	}
+};
+
+float Pixel::diff(const Pixel& a, const Pixel& b) {
+	// Implements redmean
+	float rBar = (a.r + b.r) / 2;
+	float rD = a.r - b.r;
+	float gD = a.g - b.g;
+	float bD = a.b - b.b;
+	return std::sqrt((2+rBar/256)*rD*rD+4*gD*gD+(2+(255-rBar)/256)*bD*bD);
+}
+
 // List of common image formats that are not supported
 std::vector<std::string> unsupportedImageFormats{
 	".bmp",
@@ -46,42 +71,63 @@ std::expected<std::unique_ptr<Sprite>, LoadSpriteError> Sprite::TryLoadSprite(co
 	return std::make_unique<Sprite>(sd, path);
 }
 
-struct alignas(4) Pixel {
-	auto operator<=>(const Pixel&) const = default;
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-	uint8_t a = 0;
-};
+std::vector<uint32_t> Sprite::QuantizeImage(std::span<Pixel> pixels, std::span<Pixel> palette) {
+	std::vector<uint32_t> result;
+	result.reserve(pixels.size());
+	for (Pixel p : pixels) {
+		float minError = std::numeric_limits<uint32_t>::max();
+		size_t minIndex = -1;
+		for (size_t i = 0; i < palette.size() && minError > 0; i++) {
+			float newError = Pixel::diff(p, palette[i]);
+			if (newError < minError) {
+				minError = newError;
+				minIndex = i;
+			}
+		}
+		assert(minIndex != -1);
+		result.push_back(minIndex);
+	}
+	return result;
+}
 
-template<>
-struct std::hash<Pixel>
+std::span<Pixel> Sprite::GetPixelSpan()
 {
-	std::size_t operator()(const Pixel& s) const noexcept
-	{
-		return std::hash<uint32_t>{}(std::bit_cast<uint32_t>(s));
-	}
-};
+	return std::span<Pixel>(reinterpret_cast<Pixel*>(data.data.data()), data.data.size() / 4);
+}
 
-template <>
-struct std::formatter<Pixel> : std::formatter<std::string> {
-	auto format(Pixel p, format_context& ctx) const {
-		return formatter<string>::format(std::format("({}, {}, {}, {})", p.r, p.g, p.b, p.a), ctx);
+std::span<Pixel> Sprite::GetPaletteSpan()
+{
+	auto& color = data.state.info_png.color;
+	return std::span<Pixel>(reinterpret_cast<Pixel*>(color.palette), color.palettesize);
+}
+
+std::vector<Pixel> Sprite::GeneratePalette(std::span<Pixel> pixels)
+{
+	// No palette provided
+	std::unordered_map<Pixel, unsigned> colors;
+	for (Pixel p : pixels) {
+		colors[p] += 1;
 	}
-};
+	// Get list of unique colours
+	std::vector<Pixel> palette;
+	palette.reserve(colors.size());
+	for (const auto& [pixel, count] : colors) {
+		palette.push_back(pixel);
+	}
+	return palette;
+}
 
 Sprite::Sprite(SpriteData data, std::filesystem::path path) :
 	data(data),
 	path(path)
 {
-	ynp::LogLn("Sprite Created {0}", path.string());
-	// Check for palette
 	auto& color = data.state.info_png.color;
-	if (color.palettesize > 0) {
-		ynp::LogLn("Palette: {0} colors", color.palettesize);
-		auto span = std::span<Pixel>(reinterpret_cast<Pixel*>(color.palette), color.palettesize);
-		for (Pixel p : span) {
-			ynp::LogLn("{0}", p);
-		}
+	if (color.palettesize == 0) {
+		quantizedPalette = GeneratePalette(GetPixelSpan());
 	}
+	else {
+		quantizedPalette.assign_range(GetPaletteSpan());
+	}
+	quantizedImage = Sprite::QuantizeImage(GetPixelSpan(), std::span(quantizedPalette));
+	ynp::LogLn("Palette: {0} colors", quantizedPalette.size());
 }
