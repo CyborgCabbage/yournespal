@@ -7,17 +7,34 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 {
 	ynp::LogLn("Log: Current working directory {0}", std::filesystem::current_path().string());
 	if (arguments.size() < 2) {
-		ynp::LogLn("Error: Not enough arguments, specify target and output directory (must be different)");
+		ynp::LogLn("Error: Not enough arguments, specify target and output directory");
 		return ApplicationRunError::NOT_ENOUGH_ARGUMENTS;
 	}
 	AppConfig config{
 		.inputDir = std::filesystem::path(arguments[0]),
 		.outputDir = std::filesystem::path(arguments[1]),
 	};
+	// Validate input and output directories
+	bool anyDirInvalid = false;
+	for (const auto& dir : { config.inputDir, config.outputDir }) {
+		if (!std::filesystem::exists(dir)) {
+			ynp::LogLn("Error: Path {0} does not exist", dir.string());
+			anyDirInvalid = true;
+		}
+		else if (!std::filesystem::is_directory(dir)) {
+			ynp::LogLn("Error: Path {0} is not a directory", dir.string());
+			anyDirInvalid = true;
+		}
+	}
+	if (anyDirInvalid || DoPathsOverlap(config.inputDir, config.outputDir)) {
+		return ApplicationRunError::TARGET_DIRECTORY_IS_INVALID;
+	}
+	// Load image
 	auto result = LoadImages(config.inputDir);
 	if (!result.has_value()) {
 		return result.error();
 	}
+	// Load NES palette and quantise sprites
 	auto pal = LoadPalette();
 	std::vector<Sprite> sprites;
 	for (const Image& image : result.value()) {
@@ -31,7 +48,7 @@ std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(c
 	// Check that directory exists
 	if (!std::filesystem::exists(path)) {
 		ynp::LogLn("Directory \"{0}\" does not exist", path.string());
-		return std::unexpected(ApplicationRunError::TARGET_DIR_DOES_NOT_EXIST);
+		return std::unexpected(ApplicationRunError::TARGET_DIRECTORY_IS_INVALID);
 	}
 	// Iterate files and load images
 	bool encounteredError = false;
@@ -51,6 +68,21 @@ std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(c
 		return std::unexpected(ApplicationRunError::DATA_ERROR);
 	}
 	return images;
+}
+
+bool Application::DoPathsOverlap(std::filesystem::path a, std::filesystem::path b)
+{
+	if (a.empty() || b.empty()) {
+		// Whether the paths overlap cannot be determined if one is empty
+		throw std::invalid_argument("Cannot determine whether an empty path overlaps");
+	}
+	// Normalise paths
+	a = std::filesystem::absolute(a.lexically_normal());
+	b = std::filesystem::absolute(b.lexically_normal());
+	const auto [aPart, bPart] = std::mismatch(a.begin(), a.end(), b.begin(), b.end());
+	bool aEnded = (aPart == a.end() || aPart->empty());
+	bool bEnded = (bPart == b.end() || bPart->empty());
+	return aEnded || bEnded;
 }
 
 constexpr std::array<uint8_t, 192> paletteData = {

@@ -40,7 +40,7 @@ std::vector<std::string> unsupportedImageFormats{
 std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path& path)
 {
 	// Ignore directories and extensionless files
-	if (!path.has_extension()) {
+	if (!path.has_extension() || std::filesystem::is_directory(path)) {
 		return std::unexpected(LoadImageError::NOT_IMAGE);
 	}
 	// Check if a file is not a png
