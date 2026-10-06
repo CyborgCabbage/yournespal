@@ -91,7 +91,7 @@ Sprite Sprite::FromImage(const Image& image, std::span<Pixel> palette) {
 	std::vector<uint32_t> result;
 	result.reserve(image.data.pixels.size());
 	for (Pixel p : image.data.pixels) {
-		float minError = std::numeric_limits<uint32_t>::max();
+		float minError = std::numeric_limits<float>::max();
 		size_t minIndex = -1;
 		for (size_t i = 0; i < palette.size() && minError > 0; i++) {
 			float newError = Pixel::diff(p, palette[i]);
