@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 4.0)
+﻿cmake_minimum_required (VERSION 3.31)
 
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
@@ -10,6 +10,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project ("main")
+
+enable_testing()
 
 set(CMAKE_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
