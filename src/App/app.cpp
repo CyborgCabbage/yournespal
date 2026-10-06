@@ -3,23 +3,6 @@
 #include <Asset/sprite.h>
 #include <Core/log.h>
 
-struct Pixel {
-	auto operator<=>(const Pixel&) const = default;
-	uint8_t R = 0;
-	uint8_t G = 0;
-	uint8_t B = 0;
-	uint8_t A = 0;
-};
-
-template<>
-struct std::hash<Pixel>
-{
-	std::size_t operator()(const Pixel& s) const noexcept
-	{
-		return std::hash<uint32_t>{}(std::bit_cast<uint32_t>(s));
-	}
-};
-
 std::optional<ApplicationRunError> Application::Run(const std::vector<std::string_view>& arguments)
 {
 	ynp::LogLn("Log: Current working directory {0}", std::filesystem::current_path().string());
