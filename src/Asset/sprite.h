@@ -40,7 +40,6 @@ public:
 	std::filesystem::path path;
 
 	std::vector<uint32_t> quantizedImage;
-	std::vector<Pixel> quantizedPalette;
 
 	static std::expected<std::unique_ptr<Sprite>, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
 	static std::vector<uint32_t> QuantizeImage(std::span<Pixel> pixels, std::span<Pixel> palette);

@@ -1,5 +1,6 @@
 #include "sprite.h"
 #include <Core/log.h>
+#include <App/app.h>
 
 template<>
 struct std::hash<Pixel>
@@ -122,12 +123,7 @@ Sprite::Sprite(SpriteData data, std::filesystem::path path) :
 	path(path)
 {
 	auto& color = data.state.info_png.color;
-	if (color.palettesize == 0) {
-		quantizedPalette = GeneratePalette(GetPixelSpan());
-	}
-	else {
-		quantizedPalette.assign_range(GetPaletteSpan());
-	}
-	quantizedImage = Sprite::QuantizeImage(GetPixelSpan(), std::span(quantizedPalette));
+	auto pal = Application::LoadPalette();
+	quantizedImage = Sprite::QuantizeImage(GetPixelSpan(), std::span(pal));
 	ynp::LogLn("Palette: {0} colors", quantizedPalette.size());
 }
