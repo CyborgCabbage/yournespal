@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <common.h>
 #include <Asset/sprite.h>
@@ -13,6 +13,7 @@ class Application
 {
 public:
 	static std::optional<ApplicationRunError> Run(const std::vector<std::string_view>& arguments);
+	static std::string ErrorToString(ApplicationRunError error);
 private:
 	static std::expected<std::vector<Sprite>, ApplicationRunError> LoadSprites(const std::filesystem::path& path);
 	Application();

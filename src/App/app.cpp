@@ -1,4 +1,4 @@
-#include "app.h"
+﻿#include "app.h"
 
 #include <Asset/sprite.h>
 #include <Core/log.h>
@@ -43,6 +43,19 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 	}
 	return std::nullopt;
 }
+
+#define case_VALUE_return_STRING(e) case e: return #e
+#define default_return_UNDERLYING(e, value) default: return std::format( #e "::UNKNOWN({0})", std::to_underlying(value));
+
+std::string Application::ErrorToString(ApplicationRunError error) {
+	switch (error) {
+		case_VALUE_return_STRING(ApplicationRunError::NOT_ENOUGH_ARGUMENTS);
+		case_VALUE_return_STRING(ApplicationRunError::TARGET_DIR_DOES_NOT_EXIST);
+		case_VALUE_return_STRING(ApplicationRunError::DATA_ERROR);
+		default_return_UNDERLYING(ApplicationRunError, error);
+	}
+}
+
 
 std::expected<std::vector<Sprite>, ApplicationRunError> Application::LoadSprites(const std::filesystem::path& path)
 {
