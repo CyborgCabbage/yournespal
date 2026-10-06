@@ -32,19 +32,11 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 	if (!result.has_value()) {
 		return result.error();
 	}
-	std::vector<Sprite> sprites = result.value();
-	for (const auto& spr : sprites) {
-		std::unordered_set<Pixel> colours;
-		auto& d = spr.data.data;
-		for (int i = 0; i < d.size(); i += 4) {
-			colours.insert(Pixel(d[i], d[i + 1], d[i + 2], d[i + 3]));
-		}
-		ynp::LogLn("Log: There were {0} unique colours", colours.size());
-	}
+	std::vector<std::unique_ptr<Sprite>> sprites = std::move(result.value());
 	return std::nullopt;
 }
 
-std::expected<std::vector<Sprite>, ApplicationRunError> Application::LoadSprites(const std::filesystem::path& path)
+std::expected<std::vector<std::unique_ptr<Sprite>>, ApplicationRunError> Application::LoadSprites(const std::filesystem::path& path)
 {
 	// Check that directory exists
 	if (!std::filesystem::exists(path)) {
@@ -52,11 +44,11 @@ std::expected<std::vector<Sprite>, ApplicationRunError> Application::LoadSprites
 		return std::unexpected(ApplicationRunError::TARGET_DIR_DOES_NOT_EXIST);
 	}
 	// Iterate files and load sprites
-	std::vector<Sprite> sprites;
+	std::vector<std::unique_ptr<Sprite>> sprites;
 	for (const auto& entry : std::filesystem::directory_iterator(path)) {
 		auto result = Sprite::TryLoadSprite(entry.path());
 		if (result.has_value()) {
-			sprites.emplace_back(*result);
+			sprites.emplace_back(std::move(*result));
 		}
 		else if (result.error() == LoadSpriteError::DECODE_FAILED || result.error() == LoadSpriteError::LOAD_FAILED) {
 			return std::unexpected(ApplicationRunError::DATA_ERROR);

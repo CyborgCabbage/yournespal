@@ -20,8 +20,12 @@ enum class LoadSpriteError {
 class Sprite {
 public:
 	Sprite(SpriteData data, std::filesystem::path path);
+	// Prevent copying
+	Sprite(const Sprite&) = delete;
+	Sprite& operator= (const Sprite&) = delete;
+
 	SpriteData data;
 	std::filesystem::path path;
 
-	static std::expected<Sprite, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
+	static std::expected<std::unique_ptr<Sprite>, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
 };

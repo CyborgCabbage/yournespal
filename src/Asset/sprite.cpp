@@ -11,7 +11,7 @@ std::vector<std::string> unsupportedImageFormats{
 	".pcx",
 };
 
-std::expected<Sprite, LoadSpriteError> Sprite::TryLoadSprite(const std::filesystem::path& path)
+std::expected<std::unique_ptr<Sprite>, LoadSpriteError> Sprite::TryLoadSprite(const std::filesystem::path& path)
 {
 	// Ignore directories and extensionless files
 	if (!path.has_extension()) {
@@ -43,11 +43,12 @@ std::expected<Sprite, LoadSpriteError> Sprite::TryLoadSprite(const std::filesyst
 		return std::unexpected(LoadSpriteError::DECODE_FAILED);
 	}
 
-	return Sprite(sd, path);
+	return std::make_unique<Sprite>(sd, path);
 }
 
 Sprite::Sprite(SpriteData data, std::filesystem::path path) :
 	data(data),
 	path(path)
 {
+	ynp::LogLn("Sprite Created {0}", path.string());
 }
