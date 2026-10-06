@@ -14,33 +14,37 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 		.inputDir = std::filesystem::path(arguments[0]),
 		.outputDir = std::filesystem::path(arguments[1]),
 	};
-	auto result = LoadSprites(config.inputDir);
+	auto result = LoadImages(config.inputDir);
 	if (!result.has_value()) {
 		return result.error();
 	}
-	std::vector<std::unique_ptr<Sprite>> sprites = std::move(result.value());
+	auto pal = LoadPalette();
+	std::vector<Sprite> sprites;
+	for (const Image& image : result.value()) {
+		sprites.push_back(Sprite::FromImage(image, pal));
+	}
 	return std::nullopt;
 }
 
-std::expected<std::vector<std::unique_ptr<Sprite>>, ApplicationRunError> Application::LoadSprites(const std::filesystem::path& path)
+std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(const std::filesystem::path& path)
 {
 	// Check that directory exists
 	if (!std::filesystem::exists(path)) {
 		ynp::LogLn("Directory \"{0}\" does not exist", path.string());
 		return std::unexpected(ApplicationRunError::TARGET_DIR_DOES_NOT_EXIST);
 	}
-	// Iterate files and load sprites
-	std::vector<std::unique_ptr<Sprite>> sprites;
+	// Iterate files and load images
+	std::vector<Image> images;
 	for (const auto& entry : std::filesystem::directory_iterator(path)) {
-		auto result = Sprite::TryLoadSprite(entry.path());
+		auto result = Image::FromFile(entry.path());
 		if (result.has_value()) {
-			sprites.emplace_back(std::move(*result));
+			images.emplace_back(std::move(*result));
 		}
-		else if (result.error() == LoadSpriteError::DECODE_FAILED || result.error() == LoadSpriteError::LOAD_FAILED) {
+		else if (result.error() == LoadImageError::DECODE_FAILED || result.error() == LoadImageError::LOAD_FAILED) {
 			return std::unexpected(ApplicationRunError::DATA_ERROR);
 		}
 	}
-	return sprites;
+	return images;
 }
 
 constexpr std::array<uint8_t, 192> paletteData = {
@@ -63,7 +67,7 @@ constexpr std::array<uint8_t, 192> paletteData = {
 };
 
 
-constexpr std::vector<Pixel> Application::LoadPalette()
+std::vector<Pixel> Application::LoadPalette()
 {
 	size_t paletteSize = paletteData.size() / 3;
 	std::vector<Pixel> result;

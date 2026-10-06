@@ -37,11 +37,11 @@ std::vector<std::string> unsupportedImageFormats{
 	".pcx",
 };
 
-std::expected<std::unique_ptr<Sprite>, LoadSpriteError> Sprite::TryLoadSprite(const std::filesystem::path& path)
+std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path& path)
 {
 	// Ignore directories and extensionless files
 	if (!path.has_extension()) {
-		return std::unexpected(LoadSpriteError::NOT_IMAGE);
+		return std::unexpected(LoadImageError::NOT_IMAGE);
 	}
 	// Check if a file is not a png
 	// (TryLoadSprite is ran on every file in the directory so this will trigger often)
@@ -52,30 +52,45 @@ std::expected<std::unique_ptr<Sprite>, LoadSpriteError> Sprite::TryLoadSprite(co
 		// Warn user if they are using an unknown image format
 		if (auto result = std::ranges::find(unsupportedImageFormats, ext); result != unsupportedImageFormats.end()) {
 			ynp::LogLn("Warning: {0} Image format is not supported, use .png", path.string());
-			return std::unexpected(LoadSpriteError::UNSUPPORTED_FORMAT);
+			return std::unexpected(LoadImageError::UNSUPPORTED_FORMAT);
 		}
-		return std::unexpected(LoadSpriteError::NOT_IMAGE);
+		return std::unexpected(LoadImageError::NOT_IMAGE);
 	}
 	// Load file into memory
 	std::vector<unsigned char> png;
 	if (unsigned error = lodepng::load_file(png, path.string())) {
 		ynp::LogLn("Error: {0} {1}", path.string(), lodepng_error_text(error));
-		return std::unexpected(LoadSpriteError::LOAD_FAILED);
+		return std::unexpected(LoadImageError::LOAD_FAILED);
 	}
 	// Decode PNG data (doesn't impose any format restriction or conversions)
-	SpriteData sd;
-	if (unsigned error = lodepng::decode(sd.data, sd.width, sd.height, sd.state, png)) {
+	std::vector<unsigned char> pixelData;
+	unsigned width, height;
+	lodepng::State state;
+	if (unsigned error = lodepng::decode(pixelData, width, height, state, png)) {
 		ynp::LogLn("Error: {0} {1}", path.string(), lodepng_error_text(error));
-		return std::unexpected(LoadSpriteError::DECODE_FAILED);
+		return std::unexpected(LoadImageError::DECODE_FAILED);
 	}
-
-	return std::make_unique<Sprite>(sd, path);
+	// Get pixels in vector
+	std::vector<Pixel> pixels;
+	pixels.assign_range(std::span<Pixel>(reinterpret_cast<Pixel*>(pixelData.data()), pixelData.size() / 4));
+	// Get palette in vector
+	std::vector<Pixel> palette;
+	auto& color = state.info_png.color;
+	palette.assign_range(std::span<Pixel>(reinterpret_cast<Pixel*>(color.palette), color.palettesize));
+	return Image{
+		.data = PixelData<Pixel>{
+			.pixels = pixels,
+			.width = width,
+			.height = height,
+		},
+		.sourcePalette = palette,
+	};
 }
 
-std::vector<uint32_t> Sprite::QuantizeImage(std::span<Pixel> pixels, std::span<Pixel> palette) {
+Sprite Sprite::FromImage(const Image& image, std::span<Pixel> palette) {
 	std::vector<uint32_t> result;
-	result.reserve(pixels.size());
-	for (Pixel p : pixels) {
+	result.reserve(image.data.pixels.size());
+	for (Pixel p : image.data.pixels) {
 		float minError = std::numeric_limits<uint32_t>::max();
 		size_t minIndex = -1;
 		for (size_t i = 0; i < palette.size() && minError > 0; i++) {
@@ -88,42 +103,11 @@ std::vector<uint32_t> Sprite::QuantizeImage(std::span<Pixel> pixels, std::span<P
 		assert(minIndex != -1);
 		result.push_back(minIndex);
 	}
-	return result;
-}
-
-std::span<Pixel> Sprite::GetPixelSpan()
-{
-	return std::span<Pixel>(reinterpret_cast<Pixel*>(data.data.data()), data.data.size() / 4);
-}
-
-std::span<Pixel> Sprite::GetPaletteSpan()
-{
-	auto& color = data.state.info_png.color;
-	return std::span<Pixel>(reinterpret_cast<Pixel*>(color.palette), color.palettesize);
-}
-
-std::vector<Pixel> Sprite::GeneratePalette(std::span<Pixel> pixels)
-{
-	// No palette provided
-	std::unordered_map<Pixel, unsigned> colors;
-	for (Pixel p : pixels) {
-		colors[p] += 1;
-	}
-	// Get list of unique colours
-	std::vector<Pixel> palette;
-	palette.reserve(colors.size());
-	for (const auto& [pixel, count] : colors) {
-		palette.push_back(pixel);
-	}
-	return palette;
-}
-
-Sprite::Sprite(SpriteData data, std::filesystem::path path) :
-	data(data),
-	path(path)
-{
-	auto& color = data.state.info_png.color;
-	auto pal = Application::LoadPalette();
-	quantizedImage = Sprite::QuantizeImage(GetPixelSpan(), std::span(pal));
-	ynp::LogLn("Palette: {0} colors", quantizedPalette.size());
+	return Sprite{
+		.data = PixelData<uint32_t>{
+			.pixels = result,
+			.width = image.data.width,
+			.height = image.data.height,
+		},
+	};
 }

@@ -2,21 +2,6 @@
 
 #include <common.h>
 
-struct SpriteData {
-	// Contains pixels RGBARGBA...
-	std::vector<unsigned char> data;
-	lodepng::State state;
-	unsigned width = 0;
-	unsigned height = 0;
-};
-
-enum class LoadSpriteError {
-	NOT_IMAGE,
-	UNSUPPORTED_FORMAT,
-	LOAD_FAILED,
-	DECODE_FAILED
-};
-
 struct alignas(4) Pixel {
 	auto operator<=>(const Pixel&) const = default;
 	static float diff(const Pixel& a, const Pixel& b);
@@ -26,22 +11,28 @@ struct alignas(4) Pixel {
 	uint8_t a = 0;
 };
 
-class Sprite {
-public:
-	Sprite(SpriteData data, std::filesystem::path path);
-	// Prevent copying
-	Sprite(const Sprite&) = delete;
-	Sprite& operator= (const Sprite&) = delete;
-	// Access
-	std::span<Pixel> GetPixelSpan();
-	std::span<Pixel> GetPaletteSpan();
-	
-	SpriteData data;
-	std::filesystem::path path;
+enum class LoadImageError {
+	NOT_IMAGE,
+	UNSUPPORTED_FORMAT,
+	LOAD_FAILED,
+	DECODE_FAILED
+};
 
-	std::vector<uint32_t> quantizedImage;
+// Could pull out a base class here
+template <typename Type>
+struct PixelData {
+	std::vector<Type> pixels;
+	unsigned width, height;
+};
 
-	static std::expected<std::unique_ptr<Sprite>, LoadSpriteError> TryLoadSprite(const std::filesystem::path& path);
-	static std::vector<uint32_t> QuantizeImage(std::span<Pixel> pixels, std::span<Pixel> palette);
-	static std::vector<Pixel> GeneratePalette(std::span<Pixel> pixels);
+struct Image {
+	static std::expected<Image, LoadImageError> FromFile(const std::filesystem::path& path);
+	PixelData<Pixel> data;
+	// If it was a paletted image file, source palette contains the palette from their
+	std::vector<Pixel> sourcePalette;
+};
+
+struct Sprite {
+	static Sprite FromImage(const Image& image, const std::span<Pixel> palette);
+	PixelData<uint32_t> data;
 };
