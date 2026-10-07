@@ -1,0 +1,1 @@
+Get-ChildItem -Path src , cmd , tests -recurse -include *.cpp , *.h | ForEach-Object { clang-format -i $_.FullName }

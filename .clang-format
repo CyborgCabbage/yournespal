@@ -1,0 +1,7 @@
+BasedOnStyle:  WebKit
+ColumnLimit: 0
+BraceWrapping: 
+	AfterNamespace: true
+FixNamespaceComments: false
+WrapNamespaceBodyWithEmptyLines: Always
+SpaceBeforeCpp11BracedList: false
