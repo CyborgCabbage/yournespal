@@ -1,22 +1,22 @@
 #pragma once
 
-#include <vector>
-#include <array>
-#include <unordered_map>
-#include <unordered_set>
-#include <optional>
-#include <expected>
-#include <span>
-#include <mdspan>
 #include <algorithm>
-#include <ranges>
-#include <string>
-#include <string_view>
-#include <print>
+#include <array>
+#include <expected>
 #include <filesystem>
-#include <utility>
 #include <fstream>
 #include <iostream>
+#include <mdspan>
+#include <optional>
+#include <print>
+#include <ranges>
+#include <span>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include <eigen3/Eigen/Eigen>
 #include <lodepng.h>

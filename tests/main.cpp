@@ -1,8 +1,9 @@
-#include <gtest/gtest.h>
-#include <common.h>
 #include <Core/log.h>
+#include <common.h>
+#include <gtest/gtest.h>
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     std::ofstream logFile("log.txt");
     ynp::logFile = &logFile;
     testing::InitGoogleTest(&argc, argv);

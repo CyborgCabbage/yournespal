@@ -5,130 +5,132 @@
 
 std::optional<ApplicationRunError> Application::Run(const std::vector<std::string_view>& arguments)
 {
-	ynp::LogLn("Log: Current working directory {0}", std::filesystem::current_path().string());
-	if (arguments.size() < 2) {
-		ynp::LogLn("Error: Not enough arguments, specify target and output directory");
-		return ApplicationRunError::NOT_ENOUGH_ARGUMENTS;
-	}
-	AppConfig config{
-		.inputDir = std::filesystem::path(arguments[0]),
-		.outputDir = std::filesystem::path(arguments[1]),
-	};
-	// Validate input and output directories
-	bool anyDirInvalid = false;
-	for (const auto& dir : { config.inputDir, config.outputDir }) {
-		if (!std::filesystem::exists(dir)) {
-			ynp::LogLn("Error: Path {0} does not exist", dir.string());
-			anyDirInvalid = true;
-		}
-		else if (!std::filesystem::is_directory(dir)) {
-			ynp::LogLn("Error: Path {0} is not a directory", dir.string());
-			anyDirInvalid = true;
-		}
-	}
-	if (anyDirInvalid || DoPathsOverlap(config.inputDir, config.outputDir)) {
-		return ApplicationRunError::TARGET_DIRECTORY_IS_INVALID;
-	}
-	// Load image
-	auto result = LoadImages(config.inputDir);
-	if (!result.has_value()) {
-		return result.error();
-	}
-	// Load NES palette and quantise sprites
-	auto pal = LoadPalette();
-	std::vector<Sprite> sprites;
-	for (const Image& image : result.value()) {
-		sprites.push_back(Sprite::FromImage(image, pal));
-	}
-	return std::nullopt;
+    ynp::LogLn("Log: Current working directory {0}", std::filesystem::current_path().string());
+    if (arguments.size() < 2) {
+        ynp::LogLn("Error: Not enough arguments, specify target and output directory");
+        return ApplicationRunError::NOT_ENOUGH_ARGUMENTS;
+    }
+    AppConfig config{
+        .inputDir = std::filesystem::path(arguments[0]),
+        .outputDir = std::filesystem::path(arguments[1]),
+    };
+    // Validate input and output directories
+    bool anyDirInvalid = false;
+    for (const auto& dir : { config.inputDir, config.outputDir }) {
+        if (!std::filesystem::exists(dir)) {
+            ynp::LogLn("Error: Path {0} does not exist", dir.string());
+            anyDirInvalid = true;
+        } else if (!std::filesystem::is_directory(dir)) {
+            ynp::LogLn("Error: Path {0} is not a directory", dir.string());
+            anyDirInvalid = true;
+        }
+    }
+    if (anyDirInvalid || DoPathsOverlap(config.inputDir, config.outputDir)) {
+        return ApplicationRunError::TARGET_DIRECTORY_IS_INVALID;
+    }
+    // Load image
+    auto result = LoadImages(config.inputDir);
+    if (!result.has_value()) {
+        return result.error();
+    }
+    // Load NES palette and quantise sprites
+    auto pal = LoadPalette();
+    std::vector<Sprite> sprites;
+    for (const Image& image : result.value()) {
+        sprites.push_back(Sprite::FromImage(image, pal));
+    }
+    return std::nullopt;
 }
 
-#define case_VALUE_return_STRING(e) case e: return #e
-#define default_return_UNDERLYING(e, value) default: return std::format( #e "::UNKNOWN({0})", std::to_underlying(value));
+#define case_VALUE_return_STRING(e) \
+    case e:                         \
+        return #e
+#define default_return_UNDERLYING(e, value) \
+    default:                                \
+        return std::format(#e "::UNKNOWN({0})", std::to_underlying(value));
 
-std::string Application::ErrorToString(ApplicationRunError error) {
-	switch (error) {
-		case_VALUE_return_STRING(ApplicationRunError::NOT_ENOUGH_ARGUMENTS);
-		case_VALUE_return_STRING(ApplicationRunError::TARGET_DIRECTORY_IS_INVALID);
-		case_VALUE_return_STRING(ApplicationRunError::DATA_ERROR);
-		default_return_UNDERLYING(ApplicationRunError, error);
-	}
+std::string Application::ErrorToString(ApplicationRunError error)
+{
+    switch (error) {
+        case_VALUE_return_STRING(ApplicationRunError::NOT_ENOUGH_ARGUMENTS);
+        case_VALUE_return_STRING(ApplicationRunError::TARGET_DIRECTORY_IS_INVALID);
+        case_VALUE_return_STRING(ApplicationRunError::DATA_ERROR);
+        default_return_UNDERLYING(ApplicationRunError, error);
+    }
 }
 
 std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(const std::filesystem::path& path)
 {
-	// Check that directory exists
-	if (!std::filesystem::exists(path)) {
-		ynp::LogLn("Directory \"{0}\" does not exist", path.string());
-		return std::unexpected(ApplicationRunError::TARGET_DIRECTORY_IS_INVALID);
-	}
-	// Iterate files and load images
-	bool encounteredError = false;
-	std::vector<Image> images;
-	for (const auto& entry : std::filesystem::directory_iterator(path)) {
-		auto result = Image::FromFile(entry.path());
-		if (result.has_value()) {
-			images.emplace_back(std::move(*result));
-		}
-		else if (result.error() == LoadImageError::DECODE_FAILED || result.error() == LoadImageError::LOAD_FAILED) {
-			// Use flag instead of returning here becuase we want to provide the user with 
-			// all the log messages for every image tried to load, not just stopping at the first
-			encounteredError = true;
-		}
-	}
-	if (encounteredError) {
-		return std::unexpected(ApplicationRunError::DATA_ERROR);
-	}
-	return images;
+    // Check that directory exists
+    if (!std::filesystem::exists(path)) {
+        ynp::LogLn("Directory \"{0}\" does not exist", path.string());
+        return std::unexpected(ApplicationRunError::TARGET_DIRECTORY_IS_INVALID);
+    }
+    // Iterate files and load images
+    bool encounteredError = false;
+    std::vector<Image> images;
+    for (const auto& entry : std::filesystem::directory_iterator(path)) {
+        auto result = Image::FromFile(entry.path());
+        if (result.has_value()) {
+            images.emplace_back(std::move(*result));
+        } else if (result.error() == LoadImageError::DECODE_FAILED || result.error() == LoadImageError::LOAD_FAILED) {
+            // Use flag instead of returning here becuase we want to provide the user with
+            // all the log messages for every image tried to load, not just stopping at the first
+            encounteredError = true;
+        }
+    }
+    if (encounteredError) {
+        return std::unexpected(ApplicationRunError::DATA_ERROR);
+    }
+    return images;
 }
 
 bool Application::DoPathsOverlap(std::filesystem::path a, std::filesystem::path b)
 {
-	if (a.empty() || b.empty()) {
-		// Whether the paths overlap cannot be determined if one is empty
-		throw std::invalid_argument("Cannot determine whether an empty path overlaps");
-	}
-	// Normalise paths
-	a = std::filesystem::absolute(a.lexically_normal());
-	b = std::filesystem::absolute(b.lexically_normal());
-	const auto [aPart, bPart] = std::mismatch(a.begin(), a.end(), b.begin(), b.end());
-	bool aEnded = (aPart == a.end() || aPart->empty());
-	bool bEnded = (bPart == b.end() || bPart->empty());
-	return aEnded || bEnded;
+    if (a.empty() || b.empty()) {
+        // Whether the paths overlap cannot be determined if one is empty
+        throw std::invalid_argument("Cannot determine whether an empty path overlaps");
+    }
+    // Normalise paths
+    a = std::filesystem::absolute(a.lexically_normal());
+    b = std::filesystem::absolute(b.lexically_normal());
+    const auto [aPart, bPart] = std::mismatch(a.begin(), a.end(), b.begin(), b.end());
+    bool aEnded = (aPart == a.end() || aPart->empty());
+    bool bEnded = (bPart == b.end() || bPart->empty());
+    return aEnded || bEnded;
 }
 
 constexpr std::array<uint8_t, 192> paletteData = {
-	0x55, 0x55, 0x55, 0x00, 0x17, 0x73, 0x00, 0x07, 0x86, 0x2E, 0x05, 0x78,
-	0x59, 0x02, 0x4D, 0x72, 0x00, 0x11, 0x6E, 0x00, 0x00, 0x4C, 0x08, 0x00,
-	0x17, 0x1B, 0x00, 0x00, 0x2A, 0x00, 0x00, 0x31, 0x00, 0x00, 0x2E, 0x08,
-	0x00, 0x26, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0xA5, 0xA5, 0xA5, 0x00, 0x57, 0xC6, 0x22, 0x3F, 0xE5, 0x6E, 0x28, 0xD9,
-	0xAE, 0x1A, 0xA6, 0xD2, 0x17, 0x59, 0xD1, 0x21, 0x07, 0xA7, 0x37, 0x00,
-	0x63, 0x51, 0x00, 0x18, 0x67, 0x00, 0x00, 0x72, 0x00, 0x00, 0x73, 0x31,
-	0x00, 0x6A, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0xFE, 0xFF, 0xFF, 0x2F, 0xA8, 0xFF, 0x5D, 0x81, 0xFF, 0x9C, 0x70, 0xFF,
-	0xF7, 0x72, 0xFF, 0xFF, 0x77, 0xBD, 0xFF, 0x7E, 0x75, 0xFF, 0x8A, 0x2B,
-	0xCD, 0xA0, 0x00, 0x81, 0xB8, 0x02, 0x3D, 0xC8, 0x30, 0x12, 0xCD, 0x7B,
-	0x0D, 0xC5, 0xD0, 0x3C, 0x3C, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0xFE, 0xFF, 0xFF, 0xA4, 0xDE, 0xFF, 0xB1, 0xC8, 0xFF, 0xCC, 0xBE, 0xFF,
-	0xF4, 0xC2, 0xFF, 0xFF, 0xC5, 0xEA, 0xFF, 0xC7, 0xC9, 0xFF, 0xCD, 0xAA,
-	0xEF, 0xD6, 0x96, 0xD0, 0xE0, 0x95, 0xB3, 0xE7, 0xA5, 0x9F, 0xEA, 0xC3,
-	0x9A, 0xE8, 0xE6, 0xAF, 0xAF, 0xAF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    0x55, 0x55, 0x55, 0x00, 0x17, 0x73, 0x00, 0x07, 0x86, 0x2E, 0x05, 0x78,
+    0x59, 0x02, 0x4D, 0x72, 0x00, 0x11, 0x6E, 0x00, 0x00, 0x4C, 0x08, 0x00,
+    0x17, 0x1B, 0x00, 0x00, 0x2A, 0x00, 0x00, 0x31, 0x00, 0x00, 0x2E, 0x08,
+    0x00, 0x26, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0xA5, 0xA5, 0xA5, 0x00, 0x57, 0xC6, 0x22, 0x3F, 0xE5, 0x6E, 0x28, 0xD9,
+    0xAE, 0x1A, 0xA6, 0xD2, 0x17, 0x59, 0xD1, 0x21, 0x07, 0xA7, 0x37, 0x00,
+    0x63, 0x51, 0x00, 0x18, 0x67, 0x00, 0x00, 0x72, 0x00, 0x00, 0x73, 0x31,
+    0x00, 0x6A, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0xFE, 0xFF, 0xFF, 0x2F, 0xA8, 0xFF, 0x5D, 0x81, 0xFF, 0x9C, 0x70, 0xFF,
+    0xF7, 0x72, 0xFF, 0xFF, 0x77, 0xBD, 0xFF, 0x7E, 0x75, 0xFF, 0x8A, 0x2B,
+    0xCD, 0xA0, 0x00, 0x81, 0xB8, 0x02, 0x3D, 0xC8, 0x30, 0x12, 0xCD, 0x7B,
+    0x0D, 0xC5, 0xD0, 0x3C, 0x3C, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0xFE, 0xFF, 0xFF, 0xA4, 0xDE, 0xFF, 0xB1, 0xC8, 0xFF, 0xCC, 0xBE, 0xFF,
+    0xF4, 0xC2, 0xFF, 0xFF, 0xC5, 0xEA, 0xFF, 0xC7, 0xC9, 0xFF, 0xCD, 0xAA,
+    0xEF, 0xD6, 0x96, 0xD0, 0xE0, 0x95, 0xB3, 0xE7, 0xA5, 0x9F, 0xEA, 0xC3,
+    0x9A, 0xE8, 0xE6, 0xAF, 0xAF, 0xAF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
-
 
 std::vector<Pixel> Application::LoadPalette()
 {
-	size_t paletteSize = paletteData.size() / 3;
-	std::vector<Pixel> result;
-	result.reserve(paletteSize);
-	for (int i = 0; i < paletteSize; i++) {
-		result.push_back(Pixel{
-			.r = paletteData[i * 3 + 0],
-			.g = paletteData[i * 3 + 1],
-			.b = paletteData[i * 3 + 2],
-			.a = 255,
-		});
-	}
-	return result;
+    size_t paletteSize = paletteData.size() / 3;
+    std::vector<Pixel> result;
+    result.reserve(paletteSize);
+    for (int i = 0; i < paletteSize; i++) {
+        result.push_back(Pixel{
+            .r = paletteData[i * 3 + 0],
+            .g = paletteData[i * 3 + 1],
+            .b = paletteData[i * 3 + 2],
+            .a = 255,
+        });
+    }
+    return result;
 }
