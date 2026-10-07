@@ -28,6 +28,6 @@ struct Image {
 struct Sprite {
     static Sprite FromImage(const Image& image);
     void SaveSprite(const std::filesystem::path& path) const;
-    PixelData<uint32_t> data;
+    PixelData<std::pair<uint8_t, uint8_t>> data;
     std::string id;
 };
