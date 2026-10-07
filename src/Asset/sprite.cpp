@@ -85,6 +85,7 @@ std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path
             .height = height,
         },
         .sourcePalette = palette,
+        .id = path.stem().string()
     };
 }
 
@@ -111,5 +112,21 @@ Sprite Sprite::FromImage(const Image& image, std::span<Pixel> palette)
             .width = image.data.width,
             .height = image.data.height,
         },
+        .id = image.id
     };
+}
+
+void Sprite::SaveSprite(const std::filesystem::path& directory, std::span<Pixel> palette) const
+{
+    std::vector<unsigned char> result;
+    result.reserve(data.pixels.size() * 4);
+    for (auto index : data.pixels) {
+        auto& color = palette[index];
+        result.push_back(color.r);
+        result.push_back(color.g);
+        result.push_back(color.b);
+        result.push_back(color.a);
+    }
+    auto filepath = directory / (id + ".png");
+    lodepng::encode(filepath.string(), result, data.width, data.height);
 }

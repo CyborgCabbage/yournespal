@@ -30,9 +30,12 @@ struct Image {
     PixelData<Pixel> data;
     // If it was a paletted image file, source palette contains the palette from their
     std::vector<Pixel> sourcePalette;
+    std::string id;
 };
 
 struct Sprite {
     static Sprite FromImage(const Image& image, const std::span<Pixel> palette);
+    void SaveSprite(const std::filesystem::path& path, std::span<Pixel> palette) const;
     PixelData<uint32_t> data;
+    std::string id;
 };

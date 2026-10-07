@@ -39,6 +39,10 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
     for (const Image& image : result.value()) {
         sprites.push_back(Sprite::FromImage(image, pal));
     }
+    // Export Images
+    for (const Sprite& spr : sprites) {
+        spr.SaveSprite(config.outputDir, pal);
+    }
     return std::nullopt;
 }
 
