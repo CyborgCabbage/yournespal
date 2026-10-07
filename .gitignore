@@ -366,4 +366,4 @@ FodyWeavers.xsd
 /log.txt
 /XMLGoogleTestResults.xml
 /cmake_test_discovery_*.json
-/testoutput/*.png
+/testoutput/*

@@ -1,32 +1,7 @@
 #include "sprite.h"
 #include <App/app.h>
 #include <Core/log.h>
-
-template <>
-struct std::hash<Pixel> {
-    std::size_t operator()(const Pixel& s) const noexcept
-    {
-        return std::hash<uint32_t>{ }(std::bit_cast<uint32_t>(s));
-    }
-};
-
-template <>
-struct std::formatter<Pixel> : std::formatter<std::string> {
-    auto format(Pixel p, format_context& ctx) const
-    {
-        return formatter<string>::format(std::format("({}, {}, {}, {})", p.r, p.g, p.b, p.a), ctx);
-    }
-};
-
-float Pixel::diff(const Pixel& a, const Pixel& b)
-{
-    // Implements redmean
-    float rBar = (a.r + b.r) / 2;
-    float rD = a.r - b.r;
-    float gD = a.g - b.g;
-    float bD = a.b - b.b;
-    return std::sqrt((2 + rBar / 256) * rD * rD + 4 * gD * gD + (2 + (255 - rBar) / 256) * bD * bD);
-}
+#include <Asset/palette.h>
 
 // List of common image formats that are not supported
 std::vector<std::string> unsupportedImageFormats{
@@ -89,15 +64,17 @@ std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path
     };
 }
 
-Sprite Sprite::FromImage(const Image& image, std::span<Pixel> palette)
+Sprite Sprite::FromImage(const Image& image)
 {
+    auto& pal = Palette::GetInstance();
     std::vector<uint32_t> result;
     result.reserve(image.data.pixels.size());
     for (Pixel p : image.data.pixels) {
+        Lab c = PixelToLab(p);
         float minError = std::numeric_limits<float>::max();
         size_t minIndex = -1;
-        for (size_t i = 0; i < palette.size() && minError > 0; i++) {
-            float newError = Pixel::diff(p, palette[i]);
+        for (size_t i = 0; i < pal.lab.size() && minError > 0; i++) {
+            float newError = ColorDiff(c, pal.lab[i]);
             if (newError < minError) {
                 minError = newError;
                 minIndex = i;
@@ -116,12 +93,13 @@ Sprite Sprite::FromImage(const Image& image, std::span<Pixel> palette)
     };
 }
 
-void Sprite::SaveSprite(const std::filesystem::path& directory, std::span<Pixel> palette) const
+void Sprite::SaveSprite(const std::filesystem::path& directory) const
 {
+    auto& pal = Palette::GetInstance();
     std::vector<unsigned char> result;
     result.reserve(data.pixels.size() * 4);
     for (auto index : data.pixels) {
-        auto& color = palette[index];
+        auto& color = pal.raw[index];
         result.push_back(color.r);
         result.push_back(color.g);
         result.push_back(color.b);

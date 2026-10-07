@@ -18,7 +18,6 @@ class Application {
 public:
     static std::optional<ApplicationRunError> Run(const std::vector<std::string_view>& arguments);
     static std::string ErrorToString(ApplicationRunError error);
-    static std::vector<Pixel> LoadPalette();
     static bool DoPathsOverlap(std::filesystem::path a, std::filesystem::path b);
 
 private:

@@ -1,15 +1,7 @@
 #pragma once
 
 #include <common.h>
-
-struct alignas(4) Pixel {
-    auto operator<=>(const Pixel&) const = default;
-    static float diff(const Pixel& a, const Pixel& b);
-    uint8_t r = 0;
-    uint8_t g = 0;
-    uint8_t b = 0;
-    uint8_t a = 0;
-};
+#include <Asset/pixel.h>
 
 enum class LoadImageError {
     NOT_IMAGE,
@@ -34,8 +26,8 @@ struct Image {
 };
 
 struct Sprite {
-    static Sprite FromImage(const Image& image, const std::span<Pixel> palette);
-    void SaveSprite(const std::filesystem::path& path, std::span<Pixel> palette) const;
+    static Sprite FromImage(const Image& image);
+    void SaveSprite(const std::filesystem::path& path) const;
     PixelData<uint32_t> data;
     std::string id;
 };
