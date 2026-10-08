@@ -1,7 +1,7 @@
 ﻿#include "app.h"
 
 #include <Asset/sprite.h>
-#include <Core/log.h>
+#include <Core/core.h>
 #include <Asset/palette.h>
 
 std::optional<ApplicationRunError> Application::Run(const std::vector<std::string_view>& arguments)
@@ -12,25 +12,32 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
         return ApplicationRunError::NOT_ENOUGH_ARGUMENTS;
     }
     AppConfig config{
-        .inputDir = std::filesystem::path(arguments[0]),
-        .outputDir = std::filesystem::path(arguments[1]),
+        .configFile = std::filesystem::path(arguments[0]),
+        .outputPath = std::filesystem::path(arguments[1]),
     };
-    // Validate input and output directories
-    bool anyDirInvalid = false;
-    for (const auto& dir : { config.inputDir, config.outputDir }) {
-        if (!std::filesystem::exists(dir)) {
-            ynp::LogLn("Error: Path {0} does not exist", dir.string());
-            anyDirInvalid = true;
-        } else if (!std::filesystem::is_directory(dir)) {
-            ynp::LogLn("Error: Path {0} is not a directory", dir.string());
-            anyDirInvalid = true;
-        }
+    toml::table parsed;
+    try {
+        parsed = toml::parse_file(config.configFile.string());
+    } catch (const toml::parse_error& err) {
+        ynp::LogLn("Error: Error loading config file '{0}' - {1}", config.configFile.string(), err.description());
+        return ApplicationRunError::DATA_ERROR;
     }
-    if (anyDirInvalid || DoPathsOverlap(config.inputDir, config.outputDir)) {
-        return ApplicationRunError::TARGET_DIRECTORY_IS_INVALID;
+    config.inputPath = config.configFile.parent_path();
+    // Validate input and output directories
+    if (!std::filesystem::exists(config.outputPath)) {
+        ynp::LogLn("Error: Path {0} does not exist", config.outputPath.string());
+        return ApplicationRunError::INVALID_PATH;
+    }
+    if (!std::filesystem::is_directory(config.outputPath)) {
+        ynp::LogLn("Error: Path {0} is not a directory", config.outputPath.string());
+        return ApplicationRunError::INVALID_PATH;
+    }
+    if (DoPathsOverlap(config.inputPath, config.outputPath)) {
+        ynp::LogLn("Error: Paths {0} and {1} must not overlap", config.inputPath.string(), config.outputPath.string());
+        return ApplicationRunError::INVALID_PATH;
     }
     // Load image
-    auto result = LoadImages(config.inputDir);
+    auto result = LoadImages(config.inputPath);
     if (!result.has_value()) {
         return result.error();
     }
@@ -41,7 +48,7 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
     }
     // Export Images
     for (const Sprite& spr : sprites) {
-        spr.SaveSprite(config.outputDir);
+        spr.SaveSprite(config.outputPath);
     }
     return std::nullopt;
 }
@@ -57,7 +64,7 @@ std::string Application::ErrorToString(ApplicationRunError error)
 {
     switch (error) {
         case_VALUE_return_STRING(ApplicationRunError::NOT_ENOUGH_ARGUMENTS);
-        case_VALUE_return_STRING(ApplicationRunError::TARGET_DIRECTORY_IS_INVALID);
+        case_VALUE_return_STRING(ApplicationRunError::INVALID_PATH);
         case_VALUE_return_STRING(ApplicationRunError::DATA_ERROR);
         default_return_UNDERLYING(ApplicationRunError, error);
     }
@@ -68,7 +75,7 @@ std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(c
     // Check that directory exists
     if (!std::filesystem::exists(path)) {
         ynp::LogLn("Directory \"{0}\" does not exist", path.string());
-        return std::unexpected(ApplicationRunError::TARGET_DIRECTORY_IS_INVALID);
+        return std::unexpected(ApplicationRunError::INVALID_PATH);
     }
     // Iterate files and load images
     bool encounteredError = false;

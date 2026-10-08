@@ -1,6 +1,6 @@
 #include "sprite.h"
 #include <App/app.h>
-#include <Core/log.h>
+#include <Core/core.h>
 #include <Asset/palette.h>
 
 // List of common image formats that are not supported
@@ -21,9 +21,8 @@ std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path
     }
     // Check if a file is not a png
     // (TryLoadSprite is ran on every file in the directory so this will trigger often)
-    auto ext = path.extension().string();
+    auto ext = ynp::ToLowercase(path.extension().string());
     // Case normalisation
-    std::ranges::transform(ext, ext.begin(), [](unsigned char c) { return std::tolower(c); });
     if (ext != ".png") {
         // Warn user if they are using an unknown image format
         if (auto result = std::ranges::find(unsupportedImageFormats, ext); result != unsupportedImageFormats.end()) {
@@ -67,42 +66,13 @@ std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path
 Sprite Sprite::FromImage(const Image& image)
 {
     auto& pal = Palette::GetInstance();
-    std::vector<std::pair<uint8_t, uint8_t>> result;
+    std::vector<size_t> result;
     result.reserve(image.data.pixels.size());
     for (Pixel p : image.data.pixels) {
-        Lab c = PixelToLab(p);
-        float minError = std::numeric_limits<float>::max();
-        float minError2 = std::numeric_limits<float>::max();
-        size_t minIndex = -1;
-        size_t minIndex2 = -1;
-        for (size_t i = 0; i < pal.lab.size() && minError > 0; i++) {
-            float newError = ColorDiff(c, pal.lab[i]);
-            // Patch to skip duplicates
-            if (newError == minError) {
-                continue;
-            }
-            if (newError < minError) {
-                // Move min error down
-                minError2 = minError;
-                minIndex2 = minIndex;
-                // Replace min error
-                minError = newError;
-                minIndex = i;
-            } else if (newError < minError2) {
-                minError2 = newError;
-                minIndex2 = i;
-            }
-        }
-        // Whether to include secondary color or not for dithering
-        // Checks that minError2 isn't more than %150 minError
-        if (minError2 / minError > 1.2f) {
-            minIndex2 = minIndex;
-        }
-        assert(minIndex != -1);
-        result.push_back({ minIndex, minIndex2 });
+        result.push_back(pal.GetClosestDither(PixelToLab(p)).first);
     }
     return Sprite{
-        .data = PixelData<std::pair<uint8_t, uint8_t>>{
+        .data = PixelData<size_t>{
             .pixels = result,
             .width = image.data.width,
             .height = image.data.height,
@@ -116,14 +86,16 @@ void Sprite::SaveSprite(const std::filesystem::path& directory) const
     auto& pal = Palette::GetInstance();
     std::vector<unsigned char> result;
     result.reserve(data.pixels.size() * 4);
-    bool toggle = false;
-    for (auto [first, second] : data.pixels) {
-        auto& color = pal.raw[toggle ? first : second];
-        toggle = !toggle;
-        result.push_back(color.r);
-        result.push_back(color.g);
-        result.push_back(color.b);
-        result.push_back(color.a);
+    for (size_t y = 0; y < data.height; y++) {
+        for (size_t x = 0; x < data.width; x++) {
+            auto& entry = pal.dither[data.pixels[y * data.width + x]];
+            bool dither = (x + y) % 2 == 0;
+            auto color = pal.raw[dither ? entry.a : entry.b];
+            result.push_back(color.r);
+            result.push_back(color.g);
+            result.push_back(color.b);
+            result.push_back(color.a);
+        }
     }
     auto filepath = directory / (id + ".png");
     lodepng::encode(filepath.string(), result, data.width, data.height);

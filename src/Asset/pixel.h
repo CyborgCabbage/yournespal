@@ -10,18 +10,8 @@ struct alignas(4) Pixel {
     uint8_t a = 0;
 };
 
-struct Lab {
-    float L;
-    float a;
-    float b;
-};
-
-// Linear RGB
-struct RGB {
-    float r;
-    float g;
-    float b;
-};
+using Lab = Eigen::Vector3f;
+using RGB = Eigen::Vector3f;
 
 Lab PixelToLab(Pixel p);
 Pixel LabToPixel(Lab p);
@@ -29,5 +19,3 @@ RGB PixelToRgb(Pixel p);
 Pixel RgbToPixel(RGB p);
 Lab RgbToLab(RGB c);
 RGB LabToRgb(Lab c);
-
-float ColorDiff(Lab a, Lab b);

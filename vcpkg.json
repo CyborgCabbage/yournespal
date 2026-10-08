@@ -1,7 +1,8 @@
-﻿{
+{
   "dependencies": [
     "eigen3",
     "gtest",
-    "lodepng"
+    "lodepng",
+    "tomlplusplus"
   ]
 }

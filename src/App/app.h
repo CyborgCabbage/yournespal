@@ -5,13 +5,14 @@
 
 enum class ApplicationRunError {
     NOT_ENOUGH_ARGUMENTS,
-    TARGET_DIRECTORY_IS_INVALID,
+    INVALID_PATH,
     DATA_ERROR,
 };
 
 struct AppConfig {
-    std::filesystem::path inputDir;
-    std::filesystem::path outputDir;
+    std::filesystem::path configFile;
+    std::filesystem::path inputPath;
+    std::filesystem::path outputPath;
 };
 
 class Application {

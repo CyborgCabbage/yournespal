@@ -1,4 +1,4 @@
-#include <Core/log.h>
+#include <Core/core.h>
 #include <common.h>
 #include <gtest/gtest.h>
 

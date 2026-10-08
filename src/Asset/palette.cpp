@@ -41,8 +41,49 @@ const Palette& Palette::GetInstance()
         for (Pixel p : palette->raw) {
             palette->lab.push_back(RgbToLab(PixelToRgb(p)));
         }
+        // Dither entries
+        for (uint8_t x = 0; x < paletteSize; x++) {
+            for (uint8_t y = x; y < paletteSize; y++) {
+                Lab& a = palette->lab[x];
+                Lab& b = palette->lab[y];
+                float contrast = (a - b).norm() / 2.0f;
+                Lab average = (a + b) / 2.0f;
+                auto [altIndex, altContrast] = palette->GetClosestColor(average);
+                if (altIndex == x || altIndex == y) {
+                    palette->dither.push_back(DitherEntry{ x, y, average });
+                }
+            }
+        }
     }
     return *palette;
+}
+
+std::pair<size_t, float> Palette::GetClosestColor(Lab color) const
+{
+    float minError = std::numeric_limits<float>::max();
+    size_t minIndex = -1;
+    for (size_t i = 0; i < lab.size(); i++) {
+        float newError = (color - lab[i]).norm();
+        if (newError < minError) {
+            minError = newError;
+            minIndex = i;
+        }
+    }
+    return { minIndex, minError };
+}
+
+std::pair<size_t, float> Palette::GetClosestDither(Lab color) const
+{
+    float minError = std::numeric_limits<float>::max();
+    size_t minIndex = -1;
+    for (size_t i = 0; i < dither.size(); i++) {
+        float newError = (color - dither[i].average).norm();
+        if (newError < minError) {
+            minError = newError;
+            minIndex = i;
+        }
+    }
+    return { minIndex, minError };
 }
 
 Palette::Palette()

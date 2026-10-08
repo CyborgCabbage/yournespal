@@ -20,3 +20,4 @@
 
 #include <eigen3/Eigen/Eigen>
 #include <lodepng.h>
+#include <toml++/toml.hpp>

@@ -59,15 +59,15 @@ RGB PixelToRgb(Pixel p)
 
 Pixel RgbToPixel(RGB p)
 {
-    return Pixel(ColorLinearToByte(p.r), ColorLinearToByte(p.g), ColorLinearToByte(p.b), 255);
+    return Pixel(ColorLinearToByte(p.x()), ColorLinearToByte(p.y()), ColorLinearToByte(p.z()), 255);
 }
 
 // Oklab conversions from https://bottosson.github.io/posts/oklab/#converting-from-linear-srgb-to-oklab
 Lab RgbToLab(RGB c)
 {
-    float l = 0.4122214708f * c.r + 0.5363325363f * c.g + 0.0514459929f * c.b;
-    float m = 0.2119034982f * c.r + 0.6806995451f * c.g + 0.1073969566f * c.b;
-    float s = 0.0883024619f * c.r + 0.2817188376f * c.g + 0.6299787005f * c.b;
+    float l = 0.4122214708f * c.x() + 0.5363325363f * c.y() + 0.0514459929f * c.z();
+    float m = 0.2119034982f * c.x() + 0.6806995451f * c.y() + 0.1073969566f * c.z();
+    float s = 0.0883024619f * c.x() + 0.2817188376f * c.y() + 0.6299787005f * c.z();
 
     float l_ = cbrtf(l);
     float m_ = cbrtf(m);
@@ -82,9 +82,9 @@ Lab RgbToLab(RGB c)
 
 RGB LabToRgb(Lab c)
 {
-    float l_ = c.L + 0.3963377774f * c.a + 0.2158037573f * c.b;
-    float m_ = c.L - 0.1055613458f * c.a - 0.0638541728f * c.b;
-    float s_ = c.L - 0.0894841775f * c.a - 1.2914855480f * c.b;
+    float l_ = c.x() + 0.3963377774f * c.y() + 0.2158037573f * c.z();
+    float m_ = c.x() - 0.1055613458f * c.y() - 0.0638541728f * c.z();
+    float s_ = c.x() - 0.0894841775f * c.y() - 1.2914855480f * c.z();
 
     float l = l_ * l_ * l_;
     float m = m_ * m_ * m_;
@@ -95,12 +95,4 @@ RGB LabToRgb(Lab c)
         -1.2684380046f * l + 2.6097574011f * m - 0.3413193965f * s,
         -0.0041960863f * l - 0.7034186147f * m + 1.7076147010f * s,
     };
-}
-
-float ColorDiff(Lab a, Lab b)
-{
-    float LD = a.L - b.L;
-    float aD = a.a - b.a;
-    float bD = a.b - b.b;
-    return std::sqrt(LD * LD + aD * aD + bD * bD);
 }
