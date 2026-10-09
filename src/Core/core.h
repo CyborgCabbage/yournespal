@@ -14,4 +14,21 @@ void LogLn(const std::format_string<Types...> formatString, Types&&... args)
 
 [[nodiscard]] std::string ToLowercase(std::string_view str);
 
+template <typename A>
+    requires std::integral<A>
+std::optional<A> CheckedIntegerCast(int64_t value, int64_t min = std::numeric_limits<A>::min(), int64_t max = std::numeric_limits<A>::max())
+{
+    if (max >= value && min <= value) {
+        return static_cast<A>(value);
+    }
+    return std::nullopt;
+}
+
+template <typename A>
+    requires std::integral<A>
+A ClampedIntegerCast(int64_t value, int64_t min = std::numeric_limits<A>::min(), int64_t max = std::numeric_limits<A>::max())
+{
+    return static_cast<A>(std::clamp(value, min, max));
+}
+
 }

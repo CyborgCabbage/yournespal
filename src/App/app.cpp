@@ -1,8 +1,8 @@
 ﻿#include "app.h"
 
+#include <Asset/palette.h>
 #include <Asset/sprite.h>
 #include <Core/core.h>
-#include <Asset/palette.h>
 
 std::optional<ApplicationRunError> Application::Run(const std::vector<std::string_view>& arguments)
 {
@@ -11,18 +11,15 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
         ynp::LogLn("Error: Not enough arguments, specify target and output directory");
         return ApplicationRunError::NOT_ENOUGH_ARGUMENTS;
     }
-    AppConfig config{
+    AppArguments appArgs{
         .configFile = std::filesystem::path(arguments[0]),
         .outputPath = std::filesystem::path(arguments[1]),
     };
-    toml::table parsed;
-    try {
-        parsed = toml::parse_file(config.configFile.string());
-    } catch (const toml::parse_error& err) {
-        ynp::LogLn("Error: Error loading config file '{0}' - {1}", config.configFile.string(), err.description());
+    auto parseResult = ParseConfig(appArgs);
+    if (!parseResult.has_value()) {
         return ApplicationRunError::DATA_ERROR;
     }
-    config.inputPath = config.configFile.parent_path();
+    AppConfig config = parseResult.value();
     // Validate input and output directories
     if (!std::filesystem::exists(config.outputPath)) {
         ynp::LogLn("Error: Path {0} does not exist", config.outputPath.string());
@@ -109,4 +106,48 @@ bool Application::DoPathsOverlap(std::filesystem::path a, std::filesystem::path 
     bool aEnded = (aPart == a.end() || aPart->empty());
     bool bEnded = (bPart == b.end() || bPart->empty());
     return aEnded || bEnded;
+}
+
+std::expected<AppConfig, ApplicationParseError> Application::ParseConfig(const AppArguments& arguments)
+{
+    // Load TOML file
+    toml::table loaded;
+    try {
+        loaded = toml::parse_file(arguments.configFile.string());
+    } catch (const toml::parse_error& err) {
+        ynp::LogLn("Error: Error loading config file '{0}' - {1}", arguments.configFile.string(), err.description());
+        return std::unexpected(ApplicationParseError::COULD_NOT_LOAD_FILE);
+    }
+    // File out config structure
+    AppConfig config;
+    config.inputPath = arguments.configFile.parent_path();
+    config.outputPath = arguments.outputPath;
+    // Load palettes
+    if (const toml::table* palettes = loaded.get_as<toml::table>("palette")) {
+        palettes->for_each([](const toml::key& key, const toml::table& val) {
+            ConfigPalette palette{ };
+            if (const toml::array* colors = val.get_as<toml::array>("colors")) {
+                size_t index = 0;
+                colors->for_each([&](int64_t colorId) {
+                    auto downcast = ynp::CheckedIntegerCast<uint8_t>(colorId, 0, 63);
+                    if (downcast.has_value())
+                    {
+                        palette.colors[index] = *downcast;
+                    }
+                    else {
+                        ynp::LogLn("Error: Failed to parse color ID");
+                    }
+                    index++;
+                });
+            }
+            std::cout << key << ": " << val << "\n";
+        });
+    }
+    // Load tilesets
+    if (auto* tilesets = loaded.get_as<toml::table>("tileset")) {
+        tilesets->for_each([](const toml::key& key, auto&& val) {
+            std::cout << key << ": " << val << "\n";
+        });
+    }
+    return config;
 }
