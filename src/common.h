@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
+#include <cppdecl/type_name.h>
 #include <eigen3/Eigen/Eigen>
 #include <lodepng.h>
 #include <toml++/toml.hpp>
-#include <cppdecl/type_name.h>
