@@ -19,7 +19,7 @@ struct AppArguments {
 };
 
 enum class ConfigParseError {
-
+    WRONG_VALUE_COUNT,
 };
 
 struct PaletteConfig {

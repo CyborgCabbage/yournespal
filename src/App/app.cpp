@@ -124,29 +124,18 @@ std::expected<AppConfig, ApplicationParseError> Application::ParseConfig(const A
     config.outputPath = arguments.outputPath;
     // Load palettes
     if (const toml::table* palettes = loaded.get_as<toml::table>("palette")) {
-        palettes->for_each([](const toml::key& key, const toml::table& val) {
-            PaletteConfig palette{ };
-            if (const toml::array* colors = val.get_as<toml::array>("colors")) {
-                size_t index = 0;
-                colors->for_each([&](int64_t colorId) {
-                    auto downcast = ynp::CheckedIntegerCast<uint8_t>(colorId, 0, 63);
-                    if (downcast.has_value())
-                    {
-                        palette.colors[index] = *downcast;
-                    }
-                    else {
-                        ynp::LogLn("Error: Failed to parse color ID");
-                    }
-                    index++;
-                });
+        palettes->for_each([&](const toml::key& key, const toml::table& val) {
+            if (auto palette = ParsePalette(val)) {
+				config.palettes.insert(std::pair<std::string, PaletteConfig>(key.str(), palette.value()));
             }
-            std::cout << key << ": " << val << "\n";
         });
     }
     // Load tilesets
     if (auto* tilesets = loaded.get_as<toml::table>("tileset")) {
-        tilesets->for_each([](const toml::key& key, auto&& val) {
-            std::cout << key << ": " << val << "\n";
+		tilesets->for_each([&](const toml::key& key, const toml::table& val) {
+            if (auto tileset = ParseTileset(val)) {
+				config.tilesets.insert(std::pair<std::string, TilesetConfig>(key.str(), tileset.value()));
+            }
         });
     }
     return config;
@@ -154,16 +143,22 @@ std::expected<AppConfig, ApplicationParseError> Application::ParseConfig(const A
 
 std::expected<PaletteConfig, ConfigParseError> Application::ParsePalette(const toml::table& tbl) {
     PaletteConfig palette{ };
-    if (const toml::array* colors = val.get_as<toml::array>("colors")) {
-        auto result = ynp::ParseArray<int64_t>();
-        // TODO: Copy array to vector and check range
+	if (const toml::array* colors = tbl.get_as<toml::array>("colors")) {
+        auto result = ynp::ParseArray<int64_t>(*colors);
+		if (result.size() != 4) {
+			ynp::LogLn("Error: Wrong number of colors provided, found {0} (with errors skipped), expected 4", result.size());
+			return std::unexpected(ConfigParseError::WRONG_VALUE_COUNT);
+        }
+		std::copy_n(result.begin(), 4, palette.colors.begin());
     }
+	return palette;
 }
 
 std::expected<TilesetConfig, ConfigParseError> Application::ParseTileset(const toml::table& tbl) {
     TilesetConfig tileset{ };
-    if (const toml::array* sprites = val.get_as<toml::array>("sprites")) {
-
+	if (const toml::array* sprites = tbl.get_as<toml::array>("sprites")) {
+		tileset.sprites = ynp::ParseArray<std::string>(*sprites);
     }
-
+	tileset.palette = tbl["palette"].value_or<std::string>("");
+	return tileset;
 }

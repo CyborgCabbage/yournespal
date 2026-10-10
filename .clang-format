@@ -5,3 +5,6 @@ BraceWrapping:
 FixNamespaceComments: false
 WrapNamespaceBodyWithEmptyLines: Always
 SpaceBeforeCpp11BracedList: false
+UseTab: Always
+IndentWidth: 4
+TabWidth: 4
