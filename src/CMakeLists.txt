@@ -11,3 +11,7 @@ target_precompile_headers(main PRIVATE "common.h")
 target_include_directories(main PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+target_include_directories(main PUBLIC
+    "${PROJECT_SOURCE_DIR}/include"
+)

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <algorithm>
 #include <array>
@@ -21,3 +21,4 @@
 #include <eigen3/Eigen/Eigen>
 #include <lodepng.h>
 #include <toml++/toml.hpp>
+#include <cppdecl/type_name.h>
