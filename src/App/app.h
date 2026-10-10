@@ -4,13 +4,17 @@
 #include <common.h>
 
 enum class ApplicationRunError {
-	NOT_ENOUGH_ARGUMENTS,
-	INVALID_PATH,
-	DATA_ERROR,
+	ARGUMENTS_LENGTH_WRONG,
+	PATH_INVALID,
+	DATA_INVALID,
 };
 
 enum class ApplicationParseError {
-	COULD_NOT_LOAD_FILE,
+	FILE_LOAD_FAILED,
+	ARRAY_LENGTH_WRONG,
+	VALUE_PREDICATE_FAILED,
+	VALUE_TYPE_WRONG,
+	FIELD_MISSING,
 };
 
 struct AppArguments {
@@ -18,18 +22,19 @@ struct AppArguments {
 	std::filesystem::path outputPath;
 };
 
-enum class ConfigParseError {
-	WRONG_VALUE_COUNT,
-};
+
 
 struct PaletteConfig {
+	// REQUIRED
 	std::array<uint8_t, 4> colors;
 };
 
 struct TilesetConfig {
 	// Contained sprites
+	// REQUIRED
 	std::vector<std::string> sprites;
 	// A predefined palette (will be derived from sprites if not given)
+	// OPTIONAL
 	std::optional<std::string> palette;
 };
 
@@ -47,8 +52,8 @@ public:
 	static std::string ErrorToString(ApplicationRunError error);
 	static bool DoPathsOverlap(std::filesystem::path a, std::filesystem::path b);
 	static std::expected<AppConfig, ApplicationParseError> ParseConfig(const AppArguments& arguments);
-	static std::expected<PaletteConfig, ConfigParseError> ParsePalette(const toml::table& tbl);
-	static std::expected<TilesetConfig, ConfigParseError> ParseTileset(const toml::table& tbl);
+	static std::expected<PaletteConfig, ApplicationParseError> ParsePalette(const toml::table& tbl);
+	static std::expected<TilesetConfig, ApplicationParseError> ParseTileset(const toml::table& tbl);
 
 private:
 	static std::expected<std::vector<Image>, ApplicationRunError> LoadImages(const std::filesystem::path& path);

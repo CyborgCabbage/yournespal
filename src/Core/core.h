@@ -36,32 +36,4 @@ T ClampedIntegerCast(int64_t value, int64_t min = std::numeric_limits<T>::min(),
 	return static_cast<T>(std::clamp(value, min, max));
 }
 
-// Parses toml array to a vector of a single type, logs and skips invalid values
-template <typename T, typename F>
-	requires std::predicate<F, T>
-static std::vector<T> ParseArray(const toml::array& arr, F&& predicate)
-{
-	std::vector<T> result;
-	for (int i = 0; i < arr.size(); i++) {
-		const toml::value<T>* found = arr.get_as<T>(i);
-		if (!found) {
-			ynp::LogLn("Error: Wrong type, skipping");
-			continue;
-		}
-		// Should compile to nothing with the default value
-		if (!predicate(found->get())) {
-			ynp::LogLn("Error: Predicate failed, skipping");
-			continue;
-		}
-		result.push_back(found->get());
-	}
-	return result;
-}
-
-template <typename T>
-static std::vector<T> ParseArray(const toml::array& arr)
-{
-	return ParseArray<T>(arr, [](auto) -> bool { return true; });
-}
-
 }

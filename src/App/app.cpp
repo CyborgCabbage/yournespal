@@ -9,7 +9,7 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 	ynp::LogLn("Log: Current working directory {0}", std::filesystem::current_path().string());
 	if (arguments.size() < 2) {
 		ynp::LogLn("Error: Not enough arguments, specify target and output directory");
-		return ApplicationRunError::NOT_ENOUGH_ARGUMENTS;
+		return ApplicationRunError::ARGUMENTS_LENGTH_WRONG;
 	}
 	AppArguments appArgs{
 		.configFile = std::filesystem::path(arguments[0]),
@@ -17,21 +17,21 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 	};
 	auto parseResult = ParseConfig(appArgs);
 	if (!parseResult.has_value()) {
-		return ApplicationRunError::DATA_ERROR;
+		return ApplicationRunError::DATA_INVALID;
 	}
 	AppConfig config = parseResult.value();
 	// Validate input and output directories
 	if (!std::filesystem::exists(config.outputPath)) {
 		ynp::LogLn("Error: Path {0} does not exist", config.outputPath.string());
-		return ApplicationRunError::INVALID_PATH;
+		return ApplicationRunError::PATH_INVALID;
 	}
 	if (!std::filesystem::is_directory(config.outputPath)) {
 		ynp::LogLn("Error: Path {0} is not a directory", config.outputPath.string());
-		return ApplicationRunError::INVALID_PATH;
+		return ApplicationRunError::PATH_INVALID;
 	}
 	if (DoPathsOverlap(config.inputPath, config.outputPath)) {
 		ynp::LogLn("Error: Paths {0} and {1} must not overlap", config.inputPath.string(), config.outputPath.string());
-		return ApplicationRunError::INVALID_PATH;
+		return ApplicationRunError::PATH_INVALID;
 	}
 	// Load image
 	auto result = LoadImages(config.inputPath);
@@ -60,9 +60,9 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 std::string Application::ErrorToString(ApplicationRunError error)
 {
 	switch (error) {
-		case_VALUE_return_STRING(ApplicationRunError::NOT_ENOUGH_ARGUMENTS);
-		case_VALUE_return_STRING(ApplicationRunError::INVALID_PATH);
-		case_VALUE_return_STRING(ApplicationRunError::DATA_ERROR);
+		case_VALUE_return_STRING(ApplicationRunError::ARGUMENTS_LENGTH_WRONG);
+		case_VALUE_return_STRING(ApplicationRunError::PATH_INVALID);
+		case_VALUE_return_STRING(ApplicationRunError::DATA_INVALID);
 		default_return_UNDERLYING(ApplicationRunError, error);
 	}
 }
@@ -72,7 +72,7 @@ std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(c
 	// Check that directory exists
 	if (!std::filesystem::exists(path)) {
 		ynp::LogLn("Directory \"{0}\" does not exist", path.string());
-		return std::unexpected(ApplicationRunError::INVALID_PATH);
+		return std::unexpected(ApplicationRunError::PATH_INVALID);
 	}
 	// Iterate files and load images
 	bool encounteredError = false;
@@ -88,7 +88,7 @@ std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(c
 		}
 	}
 	if (encounteredError) {
-		return std::unexpected(ApplicationRunError::DATA_ERROR);
+		return std::unexpected(ApplicationRunError::DATA_INVALID);
 	}
 	return images;
 }
@@ -108,6 +108,10 @@ bool Application::DoPathsOverlap(std::filesystem::path a, std::filesystem::path 
 	return aEnded || bEnded;
 }
 
+void LogConfigLocation(const toml::source_region& region){
+	ynp::LogLn("[Line, Column] = [{0}, {1}] to [{2}, {3}]:", region.begin.line, region.begin.column, region.end.line, region.end.column);
+}
+
 std::expected<AppConfig, ApplicationParseError> Application::ParseConfig(const AppArguments& arguments)
 {
 	// Load TOML file
@@ -116,7 +120,7 @@ std::expected<AppConfig, ApplicationParseError> Application::ParseConfig(const A
 		loaded = toml::parse_file(arguments.configFile.string());
 	} catch (const toml::parse_error& err) {
 		ynp::LogLn("Error: Error loading config file '{0}' - {1}", arguments.configFile.string(), err.description());
-		return std::unexpected(ApplicationParseError::COULD_NOT_LOAD_FILE);
+		return std::unexpected(ApplicationParseError::FILE_LOAD_FAILED);
 	}
 	// File out config structure
 	AppConfig config;
@@ -124,43 +128,108 @@ std::expected<AppConfig, ApplicationParseError> Application::ParseConfig(const A
 	config.outputPath = arguments.outputPath;
 	// Load palettes
 	if (const toml::table* palettes = loaded.get_as<toml::table>("palette")) {
-		palettes->for_each([&](const toml::key& key, const toml::table& val) {
-			if (auto palette = ParsePalette(val)) {
-				config.palettes.insert(std::pair<std::string, PaletteConfig>(key.str(), palette.value()));
+		for (const auto& pair : *palettes) {
+			const toml::key& key = pair.first;
+			const toml::table* val = pair.second.as_table();
+			if (!val) {
+				ynp::LogLn("Error: Expected palette to be table at location:");
+				LogConfigLocation(pair.second.source());
+				return std::unexpected(ApplicationParseError::VALUE_TYPE_WRONG);
 			}
-		});
+			auto palette = ParsePalette(*val);
+			if (!palette.has_value()) {
+				return std::unexpected(palette.error());
+			}
+			config.palettes.insert(std::pair<std::string, PaletteConfig>(key.str(), palette.value()));
+		}
 	}
 	// Load tilesets
 	if (auto* tilesets = loaded.get_as<toml::table>("tileset")) {
-		tilesets->for_each([&](const toml::key& key, const toml::table& val) {
-			if (auto tileset = ParseTileset(val)) {
-				config.tilesets.insert(std::pair<std::string, TilesetConfig>(key.str(), tileset.value()));
+		for (const auto& pair : *tilesets) {
+			const toml::key& key = pair.first;
+			const toml::table* val = pair.second.as_table();
+			if (!val) {
+				ynp::LogLn("Error: Expected tileset to be table at location:");
+				LogConfigLocation(pair.second.source());
+				return std::unexpected(ApplicationParseError::VALUE_TYPE_WRONG);
 			}
-		});
+			auto tileset = ParseTileset(*val);
+			if (!tileset.has_value()) {
+				return std::unexpected(tileset.error());
+			}
+			config.tilesets.insert(std::pair<std::string, TilesetConfig>(key.str(), tileset.value()));
+		}
 	}
 	return config;
 }
 
-std::expected<PaletteConfig, ConfigParseError> Application::ParsePalette(const toml::table& tbl)
+// Parses toml array to a vector of a single type, logs and skips invalid values
+template <typename T, typename F>
+	requires std::predicate<F, T>
+static std::expected<std::vector<T>, ApplicationParseError> ParseArray(const toml::array& arr, F&& predicate)
+{
+	std::vector<T> result;
+	for (int i = 0; i < arr.size(); i++) {
+		const toml::value<T>* found = arr.get_as<T>(i);
+		if (!found) {
+			ynp::LogLn("Error: Wrong type, expected 'TODO', at location:");
+			LogConfigLocation(arr.get(i)->source());
+			return std::unexpected(ApplicationParseError::VALUE_TYPE_WRONG);
+		}
+		if (!predicate(found->get())) {
+			ynp::LogLn("Error: Predicate failed with value '{0}', at location:", found->get());
+			LogConfigLocation(arr.get(i)->source());
+			return std::unexpected(ApplicationParseError::VALUE_PREDICATE_FAILED);
+		}
+		result.push_back(found->get());
+	}
+	return result;
+}
+
+template <typename T>
+static std::expected<std::vector<T>, ApplicationParseError> ParseArray(const toml::array& arr)
+{
+	// Default predicate should compile to nothing ?
+	return ParseArray<T>(arr, [](auto) -> bool { return true; });
+}
+
+
+std::expected<PaletteConfig, ApplicationParseError> Application::ParsePalette(const toml::table& tbl)
 {
 	PaletteConfig palette{ };
-	if (const toml::array* colors = tbl.get_as<toml::array>("colors")) {
-		auto result = ynp::ParseArray<int64_t>(*colors);
-		if (result.size() != 4) {
-			ynp::LogLn("Error: Wrong number of colors provided, found {0} (with errors skipped), expected 4", result.size());
-			return std::unexpected(ConfigParseError::WRONG_VALUE_COUNT);
-		}
-		std::copy_n(result.begin(), 4, palette.colors.begin());
+	const toml::array* colors = tbl.get_as<toml::array>("colors");
+	if (!colors) {
+		ynp::LogLn("Error: Missing or wrong type colors field for palette, should by array of 4 ints, at location");
+		LogConfigLocation(tbl.source());
+		return std::unexpected(ApplicationParseError::FIELD_MISSING);
 	}
+	auto result = ParseArray<int64_t>(*colors);
+	if (!result.has_value()) {
+		return std::unexpected(result.error());
+	}
+	if (result->size() != 4) {
+		ynp::LogLn("Error: Wrong number of colors provided, found {0} (with errors skipped), expected 4 at location:", result->size());
+		LogConfigLocation(colors->source());
+		return std::unexpected(ApplicationParseError::ARRAY_LENGTH_WRONG);
+	}
+	std::copy_n(result->begin(), 4, palette.colors.begin());
 	return palette;
 }
 
-std::expected<TilesetConfig, ConfigParseError> Application::ParseTileset(const toml::table& tbl)
+std::expected<TilesetConfig, ApplicationParseError> Application::ParseTileset(const toml::table& tbl)
 {
 	TilesetConfig tileset{ };
-	if (const toml::array* sprites = tbl.get_as<toml::array>("sprites")) {
-		tileset.sprites = ynp::ParseArray<std::string>(*sprites);
+	const toml::array* sprites = tbl.get_as<toml::array>("sprites");
+	if (!sprites) {
+		ynp::LogLn("Error: Missing or wrong type 'sprites' field for tileset, should by array of strings, at location");
+		LogConfigLocation(tbl.source());
+		return std::unexpected(ApplicationParseError::FIELD_MISSING);
 	}
-	tileset.palette = tbl["palette"].value_or<std::string>("");
+	auto result = ParseArray<std::string>(*sprites);
+	if (!result.has_value()) {
+		return std::unexpected(result.error());
+	}
+	tileset.sprites = *result;
+	tileset.palette = tbl["palette"].value<std::string>();
 	return tileset;
 }

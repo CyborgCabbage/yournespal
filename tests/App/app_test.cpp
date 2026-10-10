@@ -6,10 +6,10 @@ TEST(AppTest, Run)
 {
 	EXPECT_THAT(Application::Run({ "./testdata/projects/test0/", "./testoutput/" }), std::nullopt);
 	EXPECT_THAT(Application::Run({ "./testdata/projects/test0", "./testoutput/" }), std::nullopt);
-	EXPECT_THAT(Application::Run({ "./testdata/projects/test1/", "./testoutput/" }), testing::Optional(ApplicationRunError::DATA_ERROR));
-	EXPECT_THAT(Application::Run({ }), testing::Optional(ApplicationRunError::NOT_ENOUGH_ARGUMENTS));
-	EXPECT_THAT(Application::Run({ "./doesntexist", "./testoutput/" }), testing::Optional(ApplicationRunError::INVALID_PATH));
-	EXPECT_THAT(Application::Run({ "./testdata/projects/test0/", "./testdata/projects/test0/" }), testing::Optional(ApplicationRunError::INVALID_PATH));
+	EXPECT_THAT(Application::Run({ "./testdata/projects/test1/", "./testoutput/" }), testing::Optional(ApplicationRunError::DATA_INVALID));
+	EXPECT_THAT(Application::Run({ }), testing::Optional(ApplicationRunError::ARGUMENTS_LENGTH_WRONG));
+	EXPECT_THAT(Application::Run({ "./doesntexist", "./testoutput/" }), testing::Optional(ApplicationRunError::PATH_INVALID));
+	EXPECT_THAT(Application::Run({ "./testdata/projects/test0/", "./testdata/projects/test0/" }), testing::Optional(ApplicationRunError::PATH_INVALID));
 }
 
 TEST(AppTest, PathOverlap)
