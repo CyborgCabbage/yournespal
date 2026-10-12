@@ -38,7 +38,7 @@ T ClampedIntegerCast(int64_t value, int64_t min = std::numeric_limits<T>::min(),
 
 // Pair<Winners List, Ballots>
 using SEIndex = uint16_t;
-using SEResult = std::pair<std::vector<SEIndex>, Eigen::ArrayXXf>;
+using SEResult = std::pair<std::vector<SEIndex>, std::vector<uint32_t>>;
 
 SEResult ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount);
 

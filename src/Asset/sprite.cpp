@@ -72,11 +72,10 @@ Sprite Sprite::FromImage(const Image& image)
 			.width = image.data.width,
 			.height = image.data.height,
 		},
-		.id = image.id
 	};
 }
 
-void Sprite::SaveSprite(const std::filesystem::path& directory) const
+void Sprite::SaveSprite(const std::filesystem::path& directory, const std::string& filename) const
 {
 	auto& pal = Palette::GetInstance();
 	std::vector<unsigned char> result;
@@ -92,6 +91,6 @@ void Sprite::SaveSprite(const std::filesystem::path& directory) const
 			result.push_back(color.a);
 		}
 	}
-	auto filepath = directory / (id + ".png");
+	auto filepath = directory / (filename + ".png");
 	lodepng::encode(filepath.string(), result, data.width, data.height);
 }

@@ -1,21 +1,5 @@
 #include "pixel.h"
 
-template <>
-struct std::hash<Pixel> {
-	std::size_t operator()(const Pixel& s) const noexcept
-	{
-		return std::hash<uint32_t>{ }(std::bit_cast<uint32_t>(s));
-	}
-};
-
-template <>
-struct std::formatter<Pixel> : std::formatter<std::string> {
-	auto format(Pixel p, format_context& ctx) const
-	{
-		return formatter<string>::format(std::format("({}, {}, {}, {})", p.r, p.g, p.b, p.a), ctx);
-	}
-};
-
 // Applies transfer function (gamma)
 // https://en.wikipedia.org/wiki/SRGB#Transfer_function_(%22gamma%22)
 static float ColorByteToLinear(uint8_t inputColor)

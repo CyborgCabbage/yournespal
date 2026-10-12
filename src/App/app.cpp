@@ -54,11 +54,23 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 				colorCounts[p] += 1;
 			}
 		}
-		for (const auto& [pixel, palIndex] : pixelToPalette) {
-			auto [value, error] = nespal.GetClosestColor(PixelToLab(pixel));
-			pixelToPalette
+		// Calculate scores for colors (color = candidate, pixel = voter)
+		Eigen::ArrayXXf scores(nespal.lab.size(), colorCounts.size());
+		size_t i = 0;
+		for (const auto& [pixel, count] : colorCounts) {
+			Lab c = PixelToLab(pixel);
+			for (size_t j = 0; j < nespal.lab.size(); j++) {
+				scores(j, i) = (c - nespal.lab[j]).norm() * count;
+			}
+			i++;
+		}
+		auto [winners, ballots] = ynp::ScoredElimination(scores, 4);
+		ynp::LogLn("Palette selected winners:");
+		for (auto index : winners) {
+			ynp::LogLn("0x{:X}", index);
 		}
 	}
+	/*
 	// Load image
 	auto result = LoadImages(config.inputPath);
 	if (!result.has_value()) {
@@ -73,6 +85,7 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 	for (const Sprite& spr : sprites) {
 		spr.SaveSprite(config.outputPath);
 	}
+	*/
 	return std::nullopt;
 }
 
@@ -134,7 +147,8 @@ bool Application::DoPathsOverlap(std::filesystem::path a, std::filesystem::path 
 	return aEnded || bEnded;
 }
 
-void LogConfigLocation(const toml::source_region& region){
+void LogConfigLocation(const toml::source_region& region)
+{
 	ynp::LogLn("[Line, Column] = [{0}, {1}] to [{2}, {3}]:", region.begin.line, region.begin.column, region.end.line, region.end.column);
 }
 
@@ -218,7 +232,6 @@ static std::expected<std::vector<T>, ApplicationParseError> ParseArray(const tom
 	// Default predicate should compile to nothing ?
 	return ParseArray<T>(arr, [](auto) -> bool { return true; });
 }
-
 
 std::expected<PaletteConfig, ApplicationParseError> Application::ParsePalette(const toml::table& tbl)
 {

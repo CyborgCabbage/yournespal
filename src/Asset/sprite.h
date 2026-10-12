@@ -24,7 +24,6 @@ struct Image {
 
 struct Sprite {
 	static Sprite FromImage(const Image& image);
-	void SaveSprite(const std::filesystem::path& path) const;
+	void SaveSprite(const std::filesystem::path& path, const std::string& filename) const;
 	PixelData<size_t> data;
-	std::string id;
 };

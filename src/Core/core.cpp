@@ -2,9 +2,9 @@
 
 using namespace ynp;
 
-std::ofstream* logFile = nullptr;
+std::ofstream* ynp::logFile = nullptr;
 
-std::string ToLowercase(std::string_view str)
+std::string ynp::ToLowercase(std::string_view str)
 {
 	std::string result{ str };
 	std::transform(str.begin(), str.end(), result.begin(), [](unsigned char c) {
@@ -13,7 +13,7 @@ std::string ToLowercase(std::string_view str)
 	return result;
 }
 
-SEResult ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount)
+SEResult ynp::ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount)
 {
 	// Convert scores to list of ballots
 	// Each contains indices
@@ -41,26 +41,39 @@ SEResult ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount)
 			SEIndex second = b[1];
 			eliminationError[b[0]] += scores(second, i) + scores(first, i);
 		}
-		if (eliminationError.size() == winnerCount) {
+		if (eliminationError.size() <= winnerCount) {
+			size_t winnersSize = eliminationError.size();
 			// Get vector of winners
 			std::vector<SEIndex> winners;
 			winners.reserve(eliminationError.size());
 			for (const auto& [key, value] : eliminationError) {
 				winners.push_back(key);
 			}
-			// Remove other values from ballots
+			// Ballot to eigen
+			std::vector<uint32_t> choice;
+			choice.reserve(ballots.size());
 			for (auto& b : ballots) {
-				std::erase_if(b, [&](SEIndex index) {
-					return eliminationError.find(index) == eliminationError.end();
-				});
+				choice.push_back(b[0]);
 			}
-			return SEResult{ winners, ballots };
+			return SEResult{ winners, choice };
 		}
 		// Remove candidate with lowest elimination error from all ballots
 		// Source - https://stackoverflow.com/a/56479262
 		auto it = std::min_element(eliminationError.begin(), eliminationError.end(), [](const auto& l, const auto& r) { return l.second < r.second; });
 		for (auto& b : ballots) {
-			std::erase(ballots, it->first);
+			std::erase(b, it->first);
 		}
 	}
+	// Get vector of winners
+	std::unordered_set<SEIndex> winners;
+	for (const auto& b : ballots) {
+		winners.insert(b[0]);
+	}
+	// Ballot to eigen
+	std::vector<uint32_t> choice;
+	choice.reserve(ballots.size());
+	for (auto& b : ballots) {
+		choice.push_back(b[0]);
+	}
+	return SEResult{ std::vector<SEIndex>(winners.begin(), winners.end()), choice };
 }
