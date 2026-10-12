@@ -20,9 +20,6 @@ struct PixelData {
 struct Image {
 	static std::expected<Image, LoadImageError> FromFile(const std::filesystem::path& path);
 	PixelData<Pixel> data;
-	// If it was a paletted image file, source palette contains the palette from their
-	std::vector<Pixel> sourcePalette;
-	std::string id;
 };
 
 struct Sprite {

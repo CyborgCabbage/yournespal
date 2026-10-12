@@ -49,17 +49,12 @@ std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path
 	std::vector<Pixel> pixels;
 	pixels.assign_range(std::span<Pixel>(reinterpret_cast<Pixel*>(pixelData.data()), pixelData.size() / 4));
 	// Get palette in vector
-	std::vector<Pixel> palette;
-	auto& color = state.info_png.color;
-	palette.assign_range(std::span<Pixel>(reinterpret_cast<Pixel*>(color.palette), color.palettesize));
 	return Image{
 		.data = PixelData<Pixel>{
 			.pixels = pixels,
 			.width = width,
 			.height = height,
 		},
-		.sourcePalette = palette,
-		.id = path.stem().string()
 	};
 }
 

@@ -36,4 +36,10 @@ T ClampedIntegerCast(int64_t value, int64_t min = std::numeric_limits<T>::min(),
 	return static_cast<T>(std::clamp(value, min, max));
 }
 
+// Pair<Winners List, Ballots>
+using SEIndex = uint16_t;
+using SEResult = std::pair<std::vector<SEIndex>, Eigen::ArrayXXf>;
+
+SEResult ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount);
+
 }

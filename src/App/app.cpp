@@ -33,6 +33,32 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 		ynp::LogLn("Error: Paths {0} and {1} must not overlap", config.inputPath.string(), config.outputPath.string());
 		return ApplicationRunError::PATH_INVALID;
 	}
+	// (1) Load sprite images
+	// (2) For each sprite, break it up into unique tiles + a name table to assemble them
+	// (3) For each tileset, put the consistituent tiles into one sheet
+	auto& nespal = Palette::GetInstance();
+	for (const auto& [key, tilesetConfig] : config.tilesets) {
+		// Load sprite images
+		std::unordered_map<std::string, Image> images;
+		for (const std::string& spriteName : tilesetConfig.sprites) {
+			auto image = Image::FromFile(config.inputPath / (spriteName + ".png"));
+			if (!image) {
+				return ApplicationRunError::DATA_INVALID;
+			}
+			images.insert({ spriteName, image.value() });
+		}
+		// Get unique colors in sprites
+		std::unordered_map<Pixel, uint32_t> colorCounts;
+		for (const auto& [key, image] : images) {
+			for (Pixel p : image.data.pixels) {
+				colorCounts[p] += 1;
+			}
+		}
+		for (const auto& [pixel, palIndex] : pixelToPalette) {
+			auto [value, error] = nespal.GetClosestColor(PixelToLab(pixel));
+			pixelToPalette
+		}
+	}
 	// Load image
 	auto result = LoadImages(config.inputPath);
 	if (!result.has_value()) {
