@@ -13,14 +13,25 @@ std::string ynp::ToLowercase(std::string_view str)
 	return result;
 }
 
+// DESCRIPTION
+// Algorithm similar to ranked choice vote
+// But instead of just using ranking, takes a score into consideration
+// The lowest allowed score is 0, which means this is the ideal candidate for this voter
+// Score is essentially a distance from the ideal, perhaps "error" would be a better term
+// but that is a loaded term in programming
+// EXAMPLE
+// Can be used selecting an optimal subset of a color palette
+// that works best for a given image
+// TODO
+// Could work out a ballot data structure that would allow for O(1) erasure by value while maintaining sorted order
 SEResult ynp::ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount)
 {
 	// Convert scores to list of ballots
-	// Each contains indices
+	// Each contains indices referring to the score that would be sorted into that position
 	std::vector<std::vector<SEIndex>> ballots;
 	ballots.reserve(scores.cols());
 	for (auto col : scores.colwise()) {
-		// Argsort
+		// Argsort (ascending)
 		// Source - https://gist.github.com/HViktorTsoi/58eabb4f7c5a303ced400bcfa816f6f5
 		std::vector<SEIndex> ballot(col.size());
 		std::iota(ballot.begin(), ballot.end(), 0);
@@ -30,46 +41,40 @@ SEResult ynp::ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCo
 		});
 		ballots.push_back(ballot);
 	}
-	// Elimination loop (TODO: early exit)
+	// Elimination loop
+	// In theory this could be "while(true)" and rely solely on the break
+	// but best to be cautious
 	int maxEliminations = scores.rows() - winnerCount;
 	for (int e = 0; e < maxEliminations; e++) {
 		// Add elimination error from each ballot
 		std::unordered_map<SEIndex, float> eliminationError;
 		for (size_t i = 0; i < ballots.size(); i++) {
 			auto& b = ballots[i];
-			SEIndex first = b[0];
-			SEIndex second = b[1];
-			eliminationError[b[0]] += scores(second, i) + scores(first, i);
+			// Add difference in error between first and second choice for this pixel
+			// This is the increase in error this voter would suffer if it could no longer
+			// have its first choice
+			eliminationError[b[0]] += scores(b[1], i) - scores(b[0], i);
 		}
+		// Check if enough candidates have been eliminated
 		if (eliminationError.size() <= winnerCount) {
-			size_t winnersSize = eliminationError.size();
-			// Get vector of winners
-			std::vector<SEIndex> winners;
-			winners.reserve(eliminationError.size());
-			for (const auto& [key, value] : eliminationError) {
-				winners.push_back(key);
-			}
-			// Ballot to eigen
-			std::vector<uint32_t> choice;
-			choice.reserve(ballots.size());
-			for (auto& b : ballots) {
-				choice.push_back(b[0]);
-			}
-			return SEResult{ winners, choice };
+			// We could use eliminationError to generate result and "return" here
+			// but that would mean two exit points which involves some code duplication
+			// and is more complex.
+			break;
 		}
-		// Remove candidate with lowest elimination error from all ballots
+		// Remove candidate with lowest accumulated elimination error
 		// Source - https://stackoverflow.com/a/56479262
 		auto it = std::min_element(eliminationError.begin(), eliminationError.end(), [](const auto& l, const auto& r) { return l.second < r.second; });
 		for (auto& b : ballots) {
 			std::erase(b, it->first);
 		}
 	}
-	// Get vector of winners
+	// Get unique remaining candidates (winners)
 	std::unordered_set<SEIndex> winners;
 	for (const auto& b : ballots) {
 		winners.insert(b[0]);
 	}
-	// Ballot to eigen
+	// Get the top choice for each voter (out of the remaining candidates)
 	std::vector<uint32_t> choice;
 	choice.reserve(ballots.size());
 	for (auto& b : ballots) {
