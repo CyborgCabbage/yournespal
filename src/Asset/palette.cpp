@@ -26,24 +26,21 @@ const Palette& Palette::GetInstance()
 	if (palette.get() == nullptr) {
 		palette.reset(new Palette());
 		// Load palette from data
-		size_t paletteSize = paletteData.size() / 3;
-		palette->raw.reserve(paletteSize);
-		for (int i = 0; i < paletteSize; i++) {
-			palette->raw.push_back(Pixel{
+		for (int i = 0; i < PALETTE_SIZE; i++) {
+			palette->raw[i] = Pixel{
 				.r = paletteData[i * 3 + 0],
 				.g = paletteData[i * 3 + 1],
 				.b = paletteData[i * 3 + 2],
 				.a = 255,
-			});
+			};
 		}
 		// Convert to lab
-		palette->lab.reserve(paletteSize);
-		for (Pixel p : palette->raw) {
-			palette->lab.push_back(RgbToLab(PixelToRgb(p)));
-		}
+		std::ranges::transform(palette->raw, palette->lab.begin(), [](Pixel p) {
+			return PixelToLab(p);
+		});
 		// Dither entries
-		for (uint8_t x = 0; x < paletteSize; x++) {
-			for (uint8_t y = x; y < paletteSize; y++) {
+		for (uint8_t x = 0; x < PALETTE_SIZE; x++) {
+			for (uint8_t y = x; y < PALETTE_SIZE; y++) {
 				Lab& a = palette->lab[x];
 				Lab& b = palette->lab[y];
 				float contrast = (a - b).norm() / 2.0f;
@@ -53,6 +50,19 @@ const Palette& Palette::GetInstance()
 					palette->dither.push_back(DitherEntry{ x, y, average });
 				}
 			}
+		}
+		// Duplicate map
+		for (size_t i = 0; i < PALETTE_SIZE; i++) {
+			// Consolidate duplicate blacks and whites
+			size_t targetIndex = i;
+			if (palette->raw[i] == palette->raw[0x20]) {
+				// White
+				targetIndex = 0x20;
+			} else if (palette->raw[i] == palette->raw[0x0F]) {
+				// Blacks
+				targetIndex = 0x0F;
+			}
+			palette->mapDuplicates[i] = targetIndex;
 		}
 	}
 	return *palette;
@@ -64,6 +74,20 @@ std::pair<size_t, float> Palette::GetClosestColor(Lab color) const
 	size_t minIndex = -1;
 	for (size_t i = 0; i < lab.size(); i++) {
 		float newError = (color - lab[i]).norm();
+		if (newError < minError) {
+			minError = newError;
+			minIndex = i;
+		}
+	}
+	return { minIndex, minError };
+}
+
+std::pair<size_t, float> Palette::GetClosestColor(Lab color, const std::span<uint8_t>& subPalette) const
+{
+	float minError = std::numeric_limits<float>::max();
+	size_t minIndex = -1;
+	for (size_t i = 0; i < subPalette.size(); i++) {
+		float newError = (color - lab[subPalette[i]]).norm();
 		if (newError < minError) {
 			minError = newError;
 			minIndex = i;

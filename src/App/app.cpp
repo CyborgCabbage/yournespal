@@ -64,10 +64,17 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 			}
 			i++;
 		}
+		// Get palette
 		auto [winners, ballots] = ynp::ScoredElimination(scores, 4);
 		ynp::LogLn("Palette selected winners:");
 		for (auto index : winners) {
-			ynp::LogLn("0x{:X}", index);
+			ynp::LogLn("0x{:02X}", nespal.mapDuplicates[index]);
+		}
+		// Create tileset and add sprites
+		Tileset tileset;
+		std::copy(winners.begin(), winners.end(), tileset.palette.begin());
+		for (const auto& [key, image] : images) {
+			tileset.AddSprite(key, image);
 		}
 	}
 	/*

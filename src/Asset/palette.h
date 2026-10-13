@@ -10,13 +10,17 @@ struct DitherEntry {
 	Lab average;
 };
 
+constexpr size_t PALETTE_SIZE = 64;
+
 class Palette {
 public:
 	static const Palette& GetInstance();
 	std::pair<size_t, float> GetClosestColor(Lab color) const;
+	std::pair<size_t, float> GetClosestColor(Lab color, const std::span<uint8_t>& subPalette) const;
 	std::pair<size_t, float> GetClosestDither(Lab color) const;
-	std::vector<Pixel> raw;
-	std::vector<Lab> lab;
+	std::array<Pixel, PALETTE_SIZE> raw;
+	std::array<Lab, PALETTE_SIZE> lab;
+	std::array<uint8_t, PALETTE_SIZE> mapDuplicates;
 	std::vector<DitherEntry> dither;
 
 	// Prevent accidental copying

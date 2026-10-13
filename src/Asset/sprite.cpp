@@ -58,39 +58,57 @@ std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path
 	};
 }
 
-Sprite Sprite::FromImage(const Image& image)
+uint8_t Tile::Get(uint8_t x, uint8_t y) const
 {
-	auto& pal = Palette::GetInstance();
-	std::vector<size_t> result;
-	result.reserve(image.data.pixels.size());
-	for (Pixel p : image.data.pixels) {
-		result.push_back(pal.GetClosestDither(PixelToLab(p)).first);
-	}
-	return Sprite{
-		.data = PixelData<size_t>{
-			.pixels = result,
-			.width = image.data.width,
-			.height = image.data.height,
-		},
-	};
+	uint16_t mask = 0b11 << x;
+	return (data[y] & mask) >> x;
 }
 
-void Sprite::SaveSprite(const std::filesystem::path& directory, const std::string& filename) const
+void Tile::Set(uint8_t x, uint8_t y, uint8_t val)
 {
+	// Get line
+	uint16_t line = data[y];
+	// Clear target bits by and-ing inverted mask
+	line &= ~(0b11 << x);
+	// Set target bits by or-ing, masking val to stop out of range effects
+	line |= (val & 0b11) << x;
+	// Set line
+	data[y] = line;
+}
+
+void Tileset::AddSprite(const std::string& name, const Image& image)
+{
+	// Prepare palette
 	auto& pal = Palette::GetInstance();
-	std::vector<unsigned char> result;
-	result.reserve(data.pixels.size() * 4);
-	for (size_t y = 0; y < data.height; y++) {
-		for (size_t x = 0; x < data.width; x++) {
-			auto& entry = pal.dither[data.pixels[y * data.width + x]];
-			bool dither = (x + y) % 2 == 0;
-			auto color = pal.raw[dither ? entry.a : entry.b];
-			result.push_back(color.r);
-			result.push_back(color.g);
-			result.push_back(color.b);
-			result.push_back(color.a);
+	// Number of tiles in sprite
+	assert(image.data.height % 8 == 0);
+	assert(image.data.width % 8 == 0);
+	size_t tHeight = image.data.height / 8;
+	size_t tWidth = image.data.width / 8;
+	Eigen::ArrayXX<uint16_t> nametable(tHeight, tWidth);
+	// Iterate tiles
+	for (size_t ty = 0; ty < tHeight; ty++) {
+		for (size_t tx = 0; tx < tWidth; tx++) {
+			// Iterate pixels
+			Tile tile;
+			for (size_t y = 0; y < 8; y++) {
+				for (size_t x = 0; x < 8; x++) {
+					size_t gy = ty * 8 + y;
+					size_t gx = tx * 8 + x;
+					auto [index, error] = pal.GetClosestColor(PixelToLab(image.data.pixels.at(gy * image.data.width + gx)));
+					tile.Set(x, y, index);
+				}
+			}
+			// Tiles 
+			// (tiles.size() is - conveniently - the next available tile index)
+			auto [it, success] = tiles.insert({ tile, tiles.size() });
+			nametable(ty, tx) = it->second;
 		}
 	}
-	auto filepath = directory / (filename + ".png");
-	lodepng::encode(filepath.string(), result, data.width, data.height);
+	// Add nametable to map
+	nametables[name] = nametable;
+}
+
+void Tileset::Save(const std::filesystem::path& path) const
+{
 }
