@@ -16,6 +16,6 @@ The build system is CMake with vcpkg as a package manager.
 The CMake build is split into three targets:
 - The actual executable ("cmd")
 - The static library that contains the projects functionality ("main")
-- The test executable ("test_main")
+- The test executable ("main_test")
 
 Google Test is used as the testing library
