@@ -1,5 +1,7 @@
 #include "pixel.h"
 
+using namespace Asset;
+
 // Applies transfer function (gamma)
 // https://en.wikipedia.org/wiki/SRGB#Transfer_function_(%22gamma%22)
 static float ColorByteToLinear(uint8_t inputColor)
@@ -25,28 +27,28 @@ static uint8_t ColorLinearToByte(float inputColor)
 	return std::clamp(static_cast<int>(value * 255), 0, 255);
 }
 
-Lab PixelToLab(Pixel p)
+Lab Asset::PixelToLab(Pixel p)
 {
 	return RgbToLab(PixelToRgb(p));
 }
 
-Pixel LabToPixel(Lab p)
+Pixel Asset::LabToPixel(Lab p)
 {
 	return RgbToPixel(LabToRgb(p));
 }
 
-RGB PixelToRgb(Pixel p)
+RGB Asset::PixelToRgb(Pixel p)
 {
 	return RGB(ColorByteToLinear(p.r), ColorByteToLinear(p.g), ColorByteToLinear(p.b));
 }
 
-Pixel RgbToPixel(RGB p)
+Pixel Asset::RgbToPixel(RGB p)
 {
 	return Pixel(ColorLinearToByte(p.x()), ColorLinearToByte(p.y()), ColorLinearToByte(p.z()), 255);
 }
 
 // Oklab conversions from https://bottosson.github.io/posts/oklab/#converting-from-linear-srgb-to-oklab
-Lab RgbToLab(RGB c)
+Lab Asset::RgbToLab(RGB c)
 {
 	float l = 0.4122214708f * c.x() + 0.5363325363f * c.y() + 0.0514459929f * c.z();
 	float m = 0.2119034982f * c.x() + 0.6806995451f * c.y() + 0.1073969566f * c.z();
@@ -63,7 +65,7 @@ Lab RgbToLab(RGB c)
 	};
 }
 
-RGB LabToRgb(Lab c)
+RGB Asset::LabToRgb(Lab c)
 {
 	float l_ = c.x() + 0.3963377774f * c.y() + 0.2158037573f * c.z();
 	float m_ = c.x() - 0.1055613458f * c.y() - 0.0638541728f * c.z();

@@ -1,5 +1,7 @@
 #include "palette.h"
 
+using namespace Asset;
+
 std::unique_ptr<Palette> palette;
 
 constexpr std::array<uint8_t, 192> paletteData = {

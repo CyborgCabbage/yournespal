@@ -1,18 +1,9 @@
-﻿#pragma once
+#pragma once
+
 #include <common.h>
 
-namespace ynp {
-
-// Exists so that logs can be pushed into a file during testing instead of interrupting the test output
-extern std::ofstream* logFile;
-
-// Like std::println but can be redirected to a file
-template <class... Types>
-void LogLn(const std::format_string<Types...> formatString, Types&&... args)
-{
-	(logFile ? *logFile : std::cout) << std::format(formatString, std::forward<Types>(args)...) << std::endl;
-}
-
+namespace Util {
+	
 // Transforms to lowercase, returns new string object and does not modify str
 [[nodiscard]] std::string ToLowercase(std::string_view str);
 
@@ -36,10 +27,6 @@ T ClampedIntegerCast(int64_t value, int64_t min = std::numeric_limits<T>::min(),
 	return static_cast<T>(std::clamp(value, min, max));
 }
 
-// Pair<Winners List, Ballots>
-using SEIndex = uint16_t;
-using SEResult = std::pair<std::vector<SEIndex>, std::vector<uint32_t>>;
-
-SEResult ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount);
+bool DoPathsOverlap(std::filesystem::path a, std::filesystem::path b);
 
 }

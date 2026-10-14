@@ -11,6 +11,6 @@ int main(int argc, char* argv[])
 	for (int i = 1; i < argc; i++) {
 		arguments.push_back(argv[i]);
 	}
-	Application::Run(arguments);
+	App::Run(arguments);
 	return 0;
 }

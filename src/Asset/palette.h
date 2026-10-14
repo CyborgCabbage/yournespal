@@ -4,6 +4,8 @@
 
 #include <Asset/pixel.h>
 
+namespace Asset {
+
 struct DitherEntry {
 	uint8_t a;
 	uint8_t b;
@@ -31,3 +33,5 @@ private:
 	// Make constructor private to prevent construction outside of GetInstance()
 	Palette();
 };
+
+}

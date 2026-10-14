@@ -2,7 +2,7 @@
 find_package(lodepng CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 
-add_library (main STATIC "App/app.cpp" "Asset/sprite.cpp" "Core/core.cpp" "Asset/pixel.cpp" "Asset/palette.cpp")
+add_library (main STATIC "App/app.cpp" "App/config.cpp" "Asset/image.cpp" "Asset/palette.cpp" "Asset/pixel.cpp" "Asset/sprite.cpp" "Util/compute.cpp" "Util/log.cpp" "Util/validation.cpp")
 target_link_libraries(main PRIVATE Eigen3::Eigen)
 target_link_libraries(main PUBLIC lodepng)
 target_link_libraries(main PRIVATE tomlplusplus::tomlplusplus)
