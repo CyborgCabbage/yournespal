@@ -6,6 +6,8 @@ std::ofstream* ynp::logFile = nullptr;
 
 std::string ynp::ToLowercase(std::string_view str)
 {
+	assert(str.data());
+	assert(!str.empty());
 	std::string result{ str };
 	std::transform(str.begin(), str.end(), result.begin(), [](unsigned char c) {
 		return std::tolower(c);
@@ -26,6 +28,8 @@ std::string ynp::ToLowercase(std::string_view str)
 // Could work out a ballot data structure that would allow for O(1) erasure by value while maintaining sorted order
 SEResult ynp::ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount)
 {
+	assert(winnerCount > 0);
+	assert(winnerCount <= scores.rows());
 	// Convert scores to list of ballots
 	// Each contains indices referring to the score that would be sorted into that position
 	std::vector<std::vector<SEIndex>> ballots;
@@ -70,15 +74,18 @@ SEResult ynp::ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCo
 		}
 	}
 	// Get unique remaining candidates (winners)
-	std::unordered_set<SEIndex> winners;
+	std::unordered_set<SEIndex> winnersUnique;
 	for (const auto& b : ballots) {
-		winners.insert(b[0]);
+		winnersUnique.insert(b[0]);
 	}
+	std::vector<SEIndex> winners(winnersUnique.begin(), winnersUnique.end());
 	// Get the top choice for each voter (out of the remaining candidates)
 	std::vector<uint32_t> choice;
 	choice.reserve(ballots.size());
 	for (auto& b : ballots) {
 		choice.push_back(b[0]);
 	}
-	return SEResult{ std::vector<SEIndex>(winners.begin(), winners.end()), choice };
+	assert(winners.size() <= winnerCount);
+	assert(choice.size() == scores.cols());
+	return { winners, choice };
 }

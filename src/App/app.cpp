@@ -76,6 +76,7 @@ std::optional<ApplicationRunError> Application::Run(const std::vector<std::strin
 		for (const auto& [key, image] : images) {
 			tileset.AddSprite(key, image);
 		}
+		ynp::LogLn("{} Unique tiles", tileset.tiles.size());
 	}
 	/*
 	// Load image
@@ -141,10 +142,8 @@ std::expected<std::vector<Image>, ApplicationRunError> Application::LoadImages(c
 
 bool Application::DoPathsOverlap(std::filesystem::path a, std::filesystem::path b)
 {
-	if (a.empty() || b.empty()) {
-		// Whether the paths overlap cannot be determined if one is empty
-		throw std::invalid_argument("Cannot determine whether an empty path overlaps");
-	}
+	assert(!a.empty());
+	assert(!b.empty());
 	// Normalise paths
 	a = std::filesystem::absolute(a.lexically_normal());
 	b = std::filesystem::absolute(b.lexically_normal());
