@@ -1,0 +1,13 @@
+[palette.basic]
+colors = [ 0x0F, 0x20, 0x0F, 0x0F ]
+
+[tileset.valid]
+sprites = [ 
+	"valid"
+]
+palette = "basic"
+
+[tileset.invalid]
+sprites = [
+	"invalid"
+]

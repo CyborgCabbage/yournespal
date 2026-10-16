@@ -2,6 +2,7 @@
 
 #include <App/app.h>
 #include <Util/log.h>
+#include <Util/validation.h>
 
 using namespace App;
 
@@ -109,7 +110,16 @@ std::expected<PaletteConfig, ApplicationParseError> App::ParsePalette(const toml
 		LogConfigLocation(colors->source());
 		return std::unexpected(ApplicationParseError::ARRAY_LENGTH_WRONG);
 	}
-	std::copy_n(result->begin(), 4, palette.colors.begin());
+	// Copy values to palette array and check range
+	for (size_t i = 0; i < 4; i++) {
+		auto val = Util::CheckedIntegerCast<uint8_t>((*result)[i], 0, 63);
+		if (!val.has_value()) {
+			Util::LogLn("Error: Palette value {} at index {} out of range, must be in range [0,64)", (*result)[i], i);
+			LogConfigLocation(colors->source());
+			return std::unexpected(ApplicationParseError::VALUE_PREDICATE_FAILED);
+		}
+		palette.colors[i] = *val;
+	}
 	return palette;
 }
 

@@ -1,5 +1,7 @@
-#include <Asset/sprite.h>
+#include <Asset/image.h>
 #include <gtest/gtest.h>
+
+using namespace Asset;
 
 TEST(SpriteTest, Load)
 {

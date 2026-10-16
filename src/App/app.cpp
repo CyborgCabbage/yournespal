@@ -26,18 +26,11 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 	}
 	AppConfig config = parseResult.value();
 	// Validate input and output directories
-	if (!std::filesystem::exists(config.outputPath)) {
-		Util::LogLn("Error: Path {0} does not exist", config.outputPath.string());
-		return ApplicationRunError::PATH_INVALID;
-	}
-	if (!std::filesystem::is_directory(config.outputPath)) {
-		Util::LogLn("Error: Path {0} is not a directory", config.outputPath.string());
-		return ApplicationRunError::PATH_INVALID;
-	}
 	if (Util::DoPathsOverlap(config.inputPath, config.outputPath)) {
 		Util::LogLn("Error: Paths {0} and {1} must not overlap", config.inputPath.string(), config.outputPath.string());
 		return ApplicationRunError::PATH_INVALID;
 	}
+	std::filesystem::create_directories(config.outputPath);
 	// (1) Load sprite images
 	// (2) For each sprite, break it up into unique tiles + a name table to assemble them
 	// (3) For each tileset, put the consistituent tiles into one sheet

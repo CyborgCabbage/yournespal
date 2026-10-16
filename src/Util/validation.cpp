@@ -4,9 +4,7 @@ using namespace Util;
 
 std::string Util::ToLowercase(std::string_view str)
 {
-	assert(str.data());
-	assert(!str.empty());
-	std::string result{ str };
+	std::string result(str.size(), '*');// '*' is placeholder
 	std::transform(str.begin(), str.end(), result.begin(), [](unsigned char c) {
 		return std::tolower(c);
 	});
@@ -15,8 +13,9 @@ std::string Util::ToLowercase(std::string_view str)
 
 bool Util::DoPathsOverlap(std::filesystem::path a, std::filesystem::path b)
 {
-	assert(!a.empty());
-	assert(!b.empty());
+	if (a.empty() || b.empty()) {
+		throw std::invalid_argument("Either path a or path b had no value");
+	}
 	// Normalise paths
 	a = std::filesystem::absolute(a.lexically_normal());
 	b = std::filesystem::absolute(b.lexically_normal());
