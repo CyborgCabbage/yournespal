@@ -1,7 +1,7 @@
 ﻿#include "app.h"
 
 #include <Asset/palette.h>
-#include <Asset/sprite.h>
+#include <Asset/tileset.h>
 #include <Util/log.h>
 #include <Util/validation.h>
 #include <Util/compute.h>
@@ -75,6 +75,7 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 			tileset.AddSprite(key, image);
 		}
 		Util::LogLn("{} Unique tiles", tileset.tiles.size());
+		Asset::Image::ToFile(config.outputPath / (key+".png"),  tileset.ToPixels());
 	}
 	/*
 	// Load image

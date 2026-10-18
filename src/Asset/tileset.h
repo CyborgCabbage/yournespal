@@ -1,9 +1,10 @@
 #pragma once
 
+#include <common.h>
+
 #include <Asset/image.h>
 #include <Asset/pixel.h>
 #include <Util/mdvector.h>
-#include <common.h>
 
 namespace Asset {
 
@@ -35,7 +36,7 @@ namespace Asset {
 
 struct Tileset {
 	void AddSprite(const std::string& name, const Image& image);
-	void Save(const std::filesystem::path& path) const;
+	MDVector<uint8_t> ToPixels() const;
 	std::unordered_map<Tile, uint16_t> tiles;
 	std::array<uint8_t, 4> palette = { };
 	std::unordered_map<std::string, MDVector<uint16_t>> nametables;

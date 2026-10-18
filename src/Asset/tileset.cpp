@@ -1,4 +1,4 @@
-#include "sprite.h"
+#include "tileset.h"
 #include <App/app.h>
 #include <Asset/palette.h>
 
@@ -8,8 +8,8 @@ uint8_t Tile::Get(uint8_t x, uint8_t y) const
 {
 	assert(0 <= x && x < 8);
 	assert(0 <= y && y < 8);
-	uint16_t mask = 0b11 << x;
-	return (data[y] & mask) >> x;
+	uint16_t mask = 0b11 << (x * 2);
+	return (data[y] & mask) >> (x * 2);
 }
 
 void Tile::Set(uint8_t x, uint8_t y, uint8_t val)
@@ -20,9 +20,9 @@ void Tile::Set(uint8_t x, uint8_t y, uint8_t val)
 	// Get line
 	uint16_t line = data[y];
 	// Clear target bits by and-ing inverted mask
-	line &= ~(0b11 << x);
+	line &= ~(0b11 << (x * 2));
 	// Set target bits by or-ing, masking val to stop out of range effects
-	line |= (val & 0b11) << x;
+	line |= (val & 0b11) << (x * 2);
 	// Set line
 	data[y] = line;
 }
@@ -61,6 +61,18 @@ void Tileset::AddSprite(const std::string& name, const Image& image)
 	nametables.try_emplace(name, std::move(nametable));
 }
 
-void Tileset::Save(const std::filesystem::path& path) const
+MDVector<uint8_t> Tileset::ToPixels() const
 {
+	// Doesn't check range
+	MDVector<uint8_t> pixels(128, 128);
+	for (const auto& [tile, id] : tiles) {
+		int xt = id % 16;
+		int yt = id / 16;
+		for (int y = 0; y < 8; y++) {
+			for (int x = 0; x < 8; x++) {
+				pixels.span[xt * 8 + x, yt * 8 + y] = tile.Get(x, y);
+			}
+		}
+	}
+	return pixels;
 }

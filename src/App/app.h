@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Asset/sprite.h>
+#include <Asset/tileset.h>
 #include <Asset/image.h>
 #include <common.h>
 
