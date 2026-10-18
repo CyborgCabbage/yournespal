@@ -13,29 +13,29 @@ using namespace Util;
 // that works best for a given image
 // TODO
 // Could work out a ballot data structure that would allow for O(1) erasure by value while maintaining sorted order
-SEResult Util::ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount)
+SEResult Util::ScoredElimination(const MDVector<float>& scores, uint32_t winnerCount)
 {
 	assert(winnerCount > 0);
-	assert(winnerCount <= scores.rows());
+	assert(winnerCount <= scores.width);
 	// Convert scores to list of ballots
 	// Each contains indices referring to the score that would be sorted into that position
 	std::vector<std::vector<SEIndex>> ballots;
-	ballots.reserve(scores.cols());
-	for (auto col : scores.colwise()) {
+	ballots.reserve(scores.height);
+	for (uint32_t i = 0; i < scores.height; ++i) {
 		// Argsort (ascending)
 		// Source - https://gist.github.com/HViktorTsoi/58eabb4f7c5a303ced400bcfa816f6f5
-		std::vector<SEIndex> ballot(col.size());
+		std::vector<SEIndex> ballot(scores.width);
 		std::iota(ballot.begin(), ballot.end(), 0);
-		std::sort(ballot.begin(), ballot.end(), [&col](int left, int right) -> bool {
+		std::sort(ballot.begin(), ballot.end(), [&scores, i](SEIndex left, SEIndex right) -> bool {
 			// Sort indices according to corresponding ballot value
-			return col[left] < col[right];
+			return scores.span[left, i] < scores.span[right, i];
 		});
 		ballots.push_back(ballot);
 	}
 	// Elimination loop
 	// In theory this could be "while(true)" and rely solely on the break
 	// but best to be cautious
-	int maxEliminations = scores.rows() - winnerCount;
+	int maxEliminations = scores.width - winnerCount;
 	for (int e = 0; e < maxEliminations; e++) {
 		// Add elimination error from each ballot
 		std::unordered_map<SEIndex, float> eliminationError;
@@ -44,7 +44,7 @@ SEResult Util::ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerC
 			// Add difference in error between first and second choice for this pixel
 			// This is the increase in error this voter would suffer if it could no longer
 			// have its first choice
-			eliminationError[b[0]] += scores(b[1], i) - scores(b[0], i);
+			eliminationError[b[0]] += scores.span[b[1], i] - scores.span[b[0], i];
 		}
 		// Check if enough candidates have been eliminated
 		if (eliminationError.size() <= winnerCount) {
@@ -73,6 +73,6 @@ SEResult Util::ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerC
 		choice.push_back(b[0]);
 	}
 	assert(winners.size() <= winnerCount);
-	assert(choice.size() == scores.cols());
+	assert(choice.size() == scores.height);
 	return { winners, choice };
 }

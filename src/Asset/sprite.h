@@ -2,6 +2,7 @@
 
 #include <Asset/image.h>
 #include <Asset/pixel.h>
+#include <Util/mdvector.h>
 #include <common.h>
 
 namespace Asset {
@@ -37,7 +38,7 @@ struct Tileset {
 	void Save(const std::filesystem::path& path) const;
 	std::unordered_map<Tile, uint16_t> tiles;
 	std::array<uint8_t, 4> palette = { };
-	std::unordered_map<std::string, Eigen::ArrayXX<uint16_t>> nametables;
+	std::unordered_map<std::string, MDVector<uint16_t>> nametables;
 };
 
 }

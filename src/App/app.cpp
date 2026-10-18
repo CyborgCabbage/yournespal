@@ -43,22 +43,22 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 			if (!image) {
 				return ApplicationRunError::DATA_INVALID;
 			}
-			images.insert({ spriteName, image.value() });
+			images.insert(std::pair{ spriteName, std::move(image.value()) });
 		}
 		// Get unique colors in sprites
 		std::unordered_map<Asset::Pixel, uint32_t> colorCounts;
 		for (const auto& [key, image] : images) {
-			for (Asset::Pixel p : image.data.pixels) {
+			for (Asset::Pixel p : image.data.data) {
 				colorCounts[p] += 1;
 			}
 		}
-		// Calculate scores for colors (color = candidate, pixel = voter)
-		Eigen::ArrayXXf scores(nespal.lab.size(), colorCounts.size());
+		// Calculate scores for colors (color = candidate = width, pixel = voter = height)
+		MDVector<float> scores(nespal.lab.size(), colorCounts.size());
 		size_t i = 0;
 		for (const auto& [pixel, count] : colorCounts) {
 			Asset::Lab c = PixelToLab(pixel);
 			for (size_t j = 0; j < nespal.lab.size(); j++) {
-				scores(j, i) = (c - nespal.lab[j]).norm() * count;
+				scores.span[j, i] = (c - nespal.lab[j]).length() * count;
 			}
 			i++;
 		}

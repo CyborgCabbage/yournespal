@@ -52,11 +52,5 @@ std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path
 	std::vector<Pixel> pixels;
 	pixels.assign_range(std::span<Pixel>(reinterpret_cast<Pixel*>(pixelData.data()), pixelData.size() / 4));
 	// Get palette in vector
-	return Image{
-		.data = PixelData<Pixel>{
-			.pixels = pixels,
-			.width = width,
-			.height = height,
-		},
-	};
+	return Image{.data = MDVector<Pixel>(width, height, std::move(pixels))};
 }

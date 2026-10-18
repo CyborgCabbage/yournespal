@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Asset/pixel.h>
+#include <Util/mdvector.h>
 #include <common.h>
 
 namespace Asset {
@@ -12,16 +13,9 @@ enum class LoadImageError {
 	DECODE_FAILED
 };
 
-// Could pull out a base class here
-template <typename Type>
-struct PixelData {
-	std::vector<Type> pixels;
-	unsigned width, height;
-};
-
 struct Image {
 	static std::expected<Image, LoadImageError> FromFile(const std::filesystem::path& path);
-	PixelData<Pixel> data;
+	MDVector<Pixel> data;
 };
 
 }

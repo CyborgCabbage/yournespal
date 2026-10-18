@@ -17,7 +17,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <numeric>
 
-#include <eigen3/Eigen/Eigen>
 #include <lodepng.h>
 #include <toml++/toml.hpp>

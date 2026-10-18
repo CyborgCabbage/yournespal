@@ -45,7 +45,7 @@ const Palette& Palette::GetInstance()
 			for (uint8_t y = x; y < PALETTE_SIZE; y++) {
 				Lab& a = palette->lab[x];
 				Lab& b = palette->lab[y];
-				float contrast = (a - b).norm() / 2.0f;
+				float contrast = (a - b).length() / 2.0f;
 				Lab average = (a + b) / 2.0f;
 				auto [altIndex, altContrast] = palette->GetClosestColor(average);
 				if (altIndex == x || altIndex == y) {
@@ -75,7 +75,7 @@ std::pair<size_t, float> Palette::GetClosestColor(Lab color) const
 	float minError = std::numeric_limits<float>::max();
 	size_t minIndex = -1;
 	for (size_t i = 0; i < lab.size(); i++) {
-		float newError = (color - lab[i]).norm();
+		float newError = (color - lab[i]).length();
 		if (newError < minError) {
 			minError = newError;
 			minIndex = i;
@@ -89,7 +89,7 @@ std::pair<size_t, float> Palette::GetClosestColor(Lab color, const std::span<uin
 	float minError = std::numeric_limits<float>::max();
 	size_t minIndex = -1;
 	for (size_t i = 0; i < subPalette.size(); i++) {
-		float newError = (color - lab[subPalette[i]]).norm();
+		float newError = (color - lab[subPalette[i]]).length();
 		if (newError < minError) {
 			minError = newError;
 			minIndex = i;
@@ -103,7 +103,7 @@ std::pair<size_t, float> Palette::GetClosestDither(Lab color) const
 	float minError = std::numeric_limits<float>::max();
 	size_t minIndex = -1;
 	for (size_t i = 0; i < dither.size(); i++) {
-		float newError = (color - dither[i].average).norm();
+		float newError = (color - dither[i].average).length();
 		if (newError < minError) {
 			minError = newError;
 			minIndex = i;

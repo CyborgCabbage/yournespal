@@ -35,9 +35,9 @@ void Tileset::AddSprite(const std::string& name, const Image& image)
 	// Prepare palette
 	auto& pal = Palette::GetInstance();
 	// Number of tiles in sprite
-	size_t tHeight = image.data.height / 8;
 	size_t tWidth = image.data.width / 8;
-	Eigen::ArrayXX<uint16_t> nametable(tHeight, tWidth);
+	size_t tHeight = image.data.height / 8;
+	MDVector<uint16_t> nametable(tWidth, tHeight);
 	// Iterate tiles
 	for (size_t ty = 0; ty < tHeight; ty++) {
 		for (size_t tx = 0; tx < tWidth; tx++) {
@@ -47,18 +47,18 @@ void Tileset::AddSprite(const std::string& name, const Image& image)
 				for (size_t x = 0; x < 8; x++) {
 					size_t gy = ty * 8 + y;
 					size_t gx = tx * 8 + x;
-					auto [index, error] = pal.GetClosestColor(PixelToLab(image.data.pixels.at(gy * image.data.width + gx)), palette);
+					auto [index, error] = pal.GetClosestColor(PixelToLab(image.data.span[gx, gy]), palette);
 					tile.Set(x, y, index);
 				}
 			}
 			// Tiles 
 			// (tiles.size() is - conveniently - the next available tile index)
 			auto [it, success] = tiles.insert({ tile, tiles.size() });
-			nametable(ty, tx) = it->second;
+			nametable.span[tx, ty] = it->second;
 		}
 	}
 	// Add nametable to map
-	nametables[name] = nametable;
+	nametables.try_emplace(name, std::move(nametable));
 }
 
 void Tileset::Save(const std::filesystem::path& path) const

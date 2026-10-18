@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <common.h>
+#include <Util/mdvector.h>
 
 namespace Util {
 
@@ -7,6 +8,6 @@ namespace Util {
 using SEIndex = uint16_t;
 using SEResult = std::pair<std::vector<SEIndex>, std::vector<uint32_t>>;
 
-SEResult ScoredElimination(const Eigen::ArrayXXf& scores, uint32_t winnerCount);
+SEResult ScoredElimination(const MDVector<float>& scores, uint32_t winnerCount);
 
 }

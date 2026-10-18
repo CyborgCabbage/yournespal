@@ -1,6 +1,5 @@
 {
   "dependencies": [
-    "eigen3",
     "gtest",
     "lodepng",
     "tomlplusplus"

@@ -12,8 +12,19 @@ struct alignas(4) Pixel {
 	uint8_t a = 0;
 };
 
-using Lab = Eigen::Vector3f;
-using RGB = Eigen::Vector3f;
+struct Vector3f {
+	Vector3f operator+(const Vector3f& other);
+	Vector3f operator-(const Vector3f& other);
+	Vector3f operator*(float scalar);
+	Vector3f operator/(float scalar);
+	float length() const;
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 0.0f;
+};
+
+using Lab = Vector3f;
+using RGB = Vector3f;
 
 Lab PixelToLab(Pixel p);
 Pixel LabToPixel(Lab p);
