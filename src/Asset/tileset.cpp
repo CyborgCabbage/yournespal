@@ -51,7 +51,7 @@ void Tileset::AddSprite(const std::string& name, const Image& image)
 					tile.Set(x, y, index);
 				}
 			}
-			// Tiles 
+			// Tiles
 			// (tiles.size() is - conveniently - the next available tile index)
 			auto [it, success] = tiles.insert({ tile, tiles.size() });
 			nametable.span[tx, ty] = it->second;
@@ -61,18 +61,25 @@ void Tileset::AddSprite(const std::string& name, const Image& image)
 	nametables.try_emplace(name, std::move(nametable));
 }
 
-MDVector<uint8_t> Tileset::ToPixels() const
+PaletteImage Tileset::ToPaletteImage() const
 {
-	// Doesn't check range
-	MDVector<uint8_t> pixels(128, 128);
+	assert(tiles.size() <= 256);// TODO: Handle case where there are too many tiles
+	PaletteImage image{
+		.data = MDVector<uint8_t>(128, 128),
+		.palette = std::vector(palette.size(), Pixel{ })
+	};
+	auto& pal = Palette::GetInstance();
+	for (size_t i = 0; i < palette.size(); i++) {
+		image.palette[i] = pal.raw[palette[i]];
+	}
 	for (const auto& [tile, id] : tiles) {
 		int xt = id % 16;
 		int yt = id / 16;
 		for (int y = 0; y < 8; y++) {
 			for (int x = 0; x < 8; x++) {
-				pixels.span[xt * 8 + x, yt * 8 + y] = tile.Get(x, y);
+				image.data.span[xt * 8 + x, yt * 8 + y] = tile.Get(x, y);
 			}
 		}
 	}
-	return pixels;
+	return image;
 }

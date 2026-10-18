@@ -20,8 +20,13 @@ enum class SaveImageError {
 
 struct Image {
 	static std::expected<Image, LoadImageError> FromFile(const std::filesystem::path& path);
-	static std::optional<SaveImageError> ToFile(const std::filesystem::path& path, const MDVector<uint8_t>& pixels);
 	MDVector<Pixel> data;
+};
+
+struct PaletteImage {
+	std::optional<SaveImageError> ToFile(const std::filesystem::path& path);
+	MDVector<uint8_t> data;
+	std::vector<Pixel> palette;
 };
 
 }

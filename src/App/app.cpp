@@ -75,7 +75,7 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 			tileset.AddSprite(key, image);
 		}
 		Util::LogLn("{} Unique tiles", tileset.tiles.size());
-		Asset::Image::ToFile(config.outputPath / (key+".png"),  tileset.ToPixels());
+		tileset.ToPaletteImage().ToFile(config.outputPath / (key + ".png"));
 	}
 	/*
 	// Load image

@@ -28,6 +28,7 @@ struct std::hash<Asset::Tile> {
 		size_t seed = std::hash<uint64_t>{ }(std::bit_cast<HashPair>(s).first);
 		size_t b = std::hash<uint64_t>{ }(std::bit_cast<HashPair>(s).second);
 		// Source - https://stackoverflow.com/a/2595226
+		// (Maybe only sound for 32 bits but hash map only uses the lower bits right?)
 		return seed ^ b + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 	}
 };
@@ -36,7 +37,7 @@ namespace Asset {
 
 struct Tileset {
 	void AddSprite(const std::string& name, const Image& image);
-	MDVector<uint8_t> ToPixels() const;
+	PaletteImage ToPaletteImage() const;
 	std::unordered_map<Tile, uint16_t> tiles;
 	std::array<uint8_t, 4> palette = { };
 	std::unordered_map<std::string, MDVector<uint16_t>> nametables;

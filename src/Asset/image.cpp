@@ -54,28 +54,27 @@ std::expected<Image, LoadImageError> Image::FromFile(const std::filesystem::path
 	return Image{ .data = MDVector<Pixel>(width, height, std::move(pixels)) };
 }
 
-std::optional<SaveImageError> Image::ToFile(const std::filesystem::path& path, const MDVector<uint8_t>& pixels)
+std::optional<SaveImageError> PaletteImage::ToFile(const std::filesystem::path& path)
 {
 	lodepng::State state;
-	for (int i = 0; i < 4; i++) {
-		unsigned char v = 85 * i; /*alpha channel of the palette (tRNS chunk)*/
-
-		// palette must be added both to input and output color mode, because in this
-		// sample both the raw image and the expected PNG image use that palette.
-		lodepng_palette_add(&state.info_png.color, v, v, v, 255);
-		lodepng_palette_add(&state.info_raw, v, v, v, 255);
+	// Create palette
+	for (Pixel p : palette) {
+		// Palette must be created for both the format we provide the pixel data in
+		// and the format it will be encoded into
+		lodepng_palette_add(&state.info_png.color, p.r, p.g, p.b, p.a);
+		lodepng_palette_add(&state.info_raw, p.r, p.g, p.b, p.a);
 	}
 
-	// both the raw image and the encoded image must get colorType 3 (palette)
-	state.info_png.color.colortype = LCT_PALETTE; // if you comment this line, and create the above palette in info_raw instead, then you get the same image in a RGBA PNG.
+	// We are encoding 8 bit palette data (MDVector<uint8_t>) into a 2-bit (NES) palette PNG
+	state.info_png.color.colortype = LCT_PALETTE; 
 	state.info_png.color.bitdepth = 2;
 	state.info_raw.colortype = LCT_PALETTE;
 	state.info_raw.bitdepth = 8;
-	state.encoder.auto_convert = 0; // we specify ourselves exactly what output PNG color mode we want
+	state.encoder.auto_convert = 0;
 
 	// encode and save
 	std::vector<unsigned char> buffer;
-	if (unsigned error = lodepng::encode(buffer, pixels.data, pixels.width, pixels.height, state)) {
+	if (unsigned error = lodepng::encode(buffer, data.data, data.width, data.height, state)) {
 		Util::LogLn("Error: {0} {1}", path.string(), lodepng_error_text(error));
 		return SaveImageError::ENCODE_FAILED;
 	}
