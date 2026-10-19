@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include <common.h>
 #include <Util/mdvector.h>
+#include <common.h>
 
 namespace Util {
 

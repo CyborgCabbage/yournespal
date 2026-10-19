@@ -2,7 +2,6 @@
 
 #include <common.h>
 
-
 template <typename T>
 using MDVectorSpan = std::mdspan<T, std::dextents<uint32_t, 2>, std::layout_left>;
 

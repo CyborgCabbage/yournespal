@@ -3,7 +3,7 @@
 #include <common.h>
 
 namespace Util {
-	
+
 // Transforms to lowercase, returns new string object and does not modify str
 [[nodiscard]] std::string ToLowercase(std::string_view str);
 

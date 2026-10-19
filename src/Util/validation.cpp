@@ -4,7 +4,7 @@ using namespace Util;
 
 std::string Util::ToLowercase(std::string_view str)
 {
-	std::string result(str.size(), '*');// '*' is placeholder
+	std::string result(str.size(), '*'); // '*' is placeholder
 	std::transform(str.begin(), str.end(), result.begin(), [](unsigned char c) {
 		return std::tolower(c);
 	});

@@ -63,7 +63,7 @@ void Tileset::AddSprite(const std::string& name, const Image& image)
 
 PaletteImage Tileset::ToPaletteImage() const
 {
-	assert(tiles.size() <= 256);// TODO: Handle case where there are too many tiles
+	assert(tiles.size() <= 256); // TODO: Handle case where there are too many tiles
 	PaletteImage image{
 		.data = MDVector<uint8_t>(128, 128),
 		.palette = std::vector(palette.size(), Pixel{ })

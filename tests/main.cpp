@@ -1,6 +1,6 @@
+#include <Util/log.h>
 #include <common.h>
 #include <gtest/gtest.h>
-#include <Util/log.h>
 
 int main(int argc, char** argv)
 {

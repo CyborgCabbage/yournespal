@@ -66,7 +66,7 @@ std::optional<SaveImageError> PaletteImage::ToFile(const std::filesystem::path& 
 	}
 
 	// We are encoding 8 bit palette data (MDVector<uint8_t>) into a 2-bit (NES) palette PNG
-	state.info_png.color.colortype = LCT_PALETTE; 
+	state.info_png.color.colortype = LCT_PALETTE;
 	state.info_png.color.bitdepth = 2;
 	state.info_raw.colortype = LCT_PALETTE;
 	state.info_raw.bitdepth = 8;
@@ -78,7 +78,7 @@ std::optional<SaveImageError> PaletteImage::ToFile(const std::filesystem::path& 
 		Util::LogLn("Error: {0} {1}", path.string(), lodepng_error_text(error));
 		return SaveImageError::ENCODE_FAILED;
 	}
-	
+
 	if (unsigned error = lodepng::save_file(buffer, path.string())) {
 		Util::LogLn("Error: {0} {1}", path.string(), lodepng_error_text(error));
 		return SaveImageError::ENCODE_FAILED;

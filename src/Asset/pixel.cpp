@@ -20,7 +20,8 @@ Vector3f Vector3f::operator-(const Vector3f& other)
 	};
 }
 
-Vector3f Vector3f::operator*(float scalar) {
+Vector3f Vector3f::operator*(float scalar)
+{
 	return Vector3f{
 		.x = x * scalar,
 		.y = y * scalar,
@@ -37,7 +38,8 @@ Vector3f Vector3f::operator/(float scalar)
 	};
 }
 
-float Vector3f::length() const {
+float Vector3f::length() const
+{
 	return std::sqrt(x * x + y * y + z * z);
 }
 

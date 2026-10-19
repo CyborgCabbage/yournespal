@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <mdspan>
+#include <numeric>
 #include <optional>
 #include <print>
 #include <ranges>
@@ -17,7 +18,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <numeric>
 
 #include <lodepng.h>
 #include <toml++/toml.hpp>

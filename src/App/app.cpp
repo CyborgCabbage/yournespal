@@ -108,7 +108,7 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 			Util::LogLn("0x{:02X}", index);
 		}
 	}
-	// CREATE TILESET 
+	// CREATE TILESET
 	std::filesystem::create_directories(config.outputPath);
 	for (const auto& [tilesetName, tilesetConfig] : config.tilesets) {
 		Util::LogLn("Tileset '{}'", tilesetName);
