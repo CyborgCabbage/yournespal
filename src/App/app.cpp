@@ -35,7 +35,7 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 	// (2) For each sprite, break it up into unique tiles + a name table to assemble them
 	// (3) For each tileset, put the consistituent tiles into one sheet
 	auto& nespal = Asset::Palette::GetInstance();
-	for (const auto& [key, tilesetConfig] : config.tilesets) {
+	for (const auto& [tilesetName, tilesetConfig] : config.tilesets) {
 		// Load sprite images
 		std::unordered_map<std::string, Asset::Image> images;
 		for (const std::string& spriteName : tilesetConfig.sprites) {
@@ -71,11 +71,19 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 		// Create tileset and add sprites
 		Asset::Tileset tileset;
 		std::copy(winners.begin(), winners.end(), tileset.palette.begin());
-		for (const auto& [key, image] : images) {
-			tileset.AddSprite(key, image);
+		for (const auto& [imageName, image] : images) {
+			tileset.AddSprite(imageName, image);
 		}
 		Util::LogLn("{} Unique tiles", tileset.tiles.size());
-		tileset.ToPaletteImage().ToFile(config.outputPath / (key + ".png"));
+		tileset.ToPaletteImage().ToFile(config.outputPath / (tilesetName + ".png"));
+		for (const auto& [nametableName, nametable] : tileset.nametables) {
+			std::ofstream nametableFile(config.outputPath / (nametableName + ".nam.bin"), std::ios::out | std::ios::trunc | std::ios::binary);
+			nametableFile << static_cast<uint8_t>(nametable.width);
+			nametableFile << static_cast<uint8_t>(nametable.height);
+			for (const auto val : nametable.data) {
+				nametableFile << static_cast<uint8_t>(val);
+			}
+		}
 	}
 	/*
 	// Load image
