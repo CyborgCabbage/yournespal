@@ -1,0 +1,16 @@
+[palette.basic]
+colors = [ 0x0F, 0x20 ]
+
+[tileset.napstablook]
+sprites = [ 
+	"napstablook_base",
+	"napstablook_hat",
+	"napstablook_eyes_alt" 
+]
+palette = "basic"
+
+[tileset.target]
+sprites = [
+	"target"
+]
+palette = "basic"
