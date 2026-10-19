@@ -132,20 +132,3 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 	}
 	return std::nullopt;
 }
-
-#define case_VALUE_return_STRING(e) \
-	case e:                         \
-		return #e
-#define default_return_UNDERLYING(e, value) \
-	default:                                \
-		return std::format(#e "::UNKNOWN({0})", std::to_underlying(value));
-
-std::string App::ErrorToString(ApplicationRunError error)
-{
-	switch (error) {
-		case_VALUE_return_STRING(ApplicationRunError::ARGUMENTS_LENGTH_WRONG);
-		case_VALUE_return_STRING(ApplicationRunError::PATH_INVALID);
-		case_VALUE_return_STRING(ApplicationRunError::DATA_INVALID);
-		default_return_UNDERLYING(ApplicationRunError, error);
-	}
-}

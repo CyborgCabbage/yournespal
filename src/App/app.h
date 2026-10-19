@@ -20,6 +20,4 @@ struct AppArguments {
 
 std::optional<ApplicationRunError> Run(const std::vector<std::string_view>& arguments);
 
-std::string ErrorToString(ApplicationRunError error);
-
 }
