@@ -19,6 +19,5 @@ struct AppArguments {
 
 std::optional<ApplicationRunError> Run(const std::vector<std::string_view>& arguments);
 std::string ErrorToString(ApplicationRunError error);
-std::expected<std::vector<Asset::Image>, ApplicationRunError> LoadImages(const std::filesystem::path& path);
 
 }

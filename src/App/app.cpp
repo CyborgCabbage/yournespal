@@ -120,29 +120,3 @@ std::string App::ErrorToString(ApplicationRunError error)
 		default_return_UNDERLYING(ApplicationRunError, error);
 	}
 }
-
-std::expected<std::vector<Asset::Image>, ApplicationRunError> App::LoadImages(const std::filesystem::path& path)
-{
-	// Check that directory exists
-	if (!std::filesystem::exists(path)) {
-		Util::LogLn("Directory \"{0}\" does not exist", path.string());
-		return std::unexpected(ApplicationRunError::PATH_INVALID);
-	}
-	// Iterate files and load images
-	bool encounteredError = false;
-	std::vector<Asset::Image> images;
-	for (const auto& entry : std::filesystem::directory_iterator(path)) {
-		auto result = Asset::Image::FromFile(entry.path());
-		if (result.has_value()) {
-			images.emplace_back(std::move(*result));
-		} else if (result.error() == Asset::LoadImageError::DECODE_FAILED || result.error() == Asset::LoadImageError::LOAD_FAILED) {
-			// Use flag instead of returning here becuase we want to provide the user with
-			// all the log messages for every image tried to load, not just stopping at the first
-			encounteredError = true;
-		}
-	}
-	if (encounteredError) {
-		return std::unexpected(ApplicationRunError::DATA_INVALID);
-	}
-	return images;
-}
