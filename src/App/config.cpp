@@ -6,6 +6,17 @@
 
 using namespace App;
 
+std::string AppConfig::AddAnonymousPalette(std::string_view tilesetName)
+{
+	// Create new palette
+	std::string proposed(tilesetName);
+	for (size_t i = 0; palettes.contains(proposed); i++) {
+		proposed = std::format("{}_{}", tilesetName, i);
+	}
+	auto it = palettes.insert(std::pair{ proposed, PaletteConfig{ } }).first;
+	return it->first;
+}
+
 void LogConfigLocation(const toml::source_region& region)
 {
 	Util::LogLn("[Line, Column] = [{0}, {1}] to [{2}, {3}]:", region.begin.line, region.begin.column, region.end.line, region.end.column);
@@ -105,14 +116,23 @@ std::expected<PaletteConfig, ApplicationParseError> App::ParsePalette(const toml
 	if (!result.has_value()) {
 		return std::unexpected(result.error());
 	}
-	if (result->size() != 4) {
-		Util::LogLn("Error: Wrong number of colors provided, found {0} (with errors skipped), expected 4 at location:", result->size());
+	if (result->size() > 4) {
+		Util::LogLn("Error: Too many colors provided, found {0} (with errors skipped), expected at most 4 at location:", result->size());
 		LogConfigLocation(colors->source());
 		return std::unexpected(ApplicationParseError::ARRAY_LENGTH_WRONG);
 	}
 	// Copy values to palette array and check range
 	for (size_t i = 0; i < 4; i++) {
-		auto val = Util::CheckedIntegerCast<uint8_t>((*result)[i], 0, 63);
+		if (i >= result->size()) {
+			// Leave palette as nullopt if the array doesn't go that far
+			continue;
+		}
+		int64_t rawVal = (*result)[i];
+		if (rawVal < 0) {
+			// Treat negative numbers as a place holder
+			continue;
+		}
+		auto val = Util::CheckedIntegerCast<uint8_t>(rawVal, 0, 63);
 		if (!val.has_value()) {
 			Util::LogLn("Error: Palette value {} at index {} out of range, must be in range [0,64)", (*result)[i], i);
 			LogConfigLocation(colors->source());
@@ -137,6 +157,6 @@ std::expected<TilesetConfig, ApplicationParseError> App::ParseTileset(const toml
 		return std::unexpected(result.error());
 	}
 	tileset.sprites = *result;
-	tileset.palette = tbl["palette"].value<std::string>();
+	tileset.palette = tbl["palette"].value<std::string>().value_or("");
 	return tileset;
 }

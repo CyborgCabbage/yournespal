@@ -1,11 +1,11 @@
 ﻿#include "app.h"
 
+#include <App/config.h>
 #include <Asset/palette.h>
 #include <Asset/tileset.h>
+#include <Util/compute.h>
 #include <Util/log.h>
 #include <Util/validation.h>
-#include <Util/compute.h>
-#include <App/config.h>
 
 using namespace App;
 
@@ -30,51 +30,96 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 		Util::LogLn("Error: Paths {0} and {1} must not overlap", config.inputPath.string(), config.outputPath.string());
 		return ApplicationRunError::PATH_INVALID;
 	}
-	std::filesystem::create_directories(config.outputPath);
-	// (1) Load sprite images
-	// (2) For each sprite, break it up into unique tiles + a name table to assemble them
-	// (3) For each tileset, put the consistituent tiles into one sheet
-	auto& nespal = Asset::Palette::GetInstance();
-	for (const auto& [tilesetName, tilesetConfig] : config.tilesets) {
-		// Load sprite images
-		std::unordered_map<std::string, Asset::Image> images;
+	// LOAD IMAGES
+	std::unordered_map<std::string, Asset::Image> images;
+	std::unordered_map<std::string, std::vector<std::string>> paletteToImage;
+	for (auto& [tilesetName, tilesetConfig] : config.tilesets) {
+		// Get Palette (we say that empty string should be the same as no value)
+		if (!tilesetConfig.palette.empty()) {
+			// Check palette exists
+			if (!config.palettes.contains(tilesetConfig.palette)) {
+				Util::LogLn("Error: Could not find palette {} for tileset {}", tilesetConfig.palette, tilesetName);
+				return ApplicationRunError::DATA_INVALID;
+			}
+		} else {
+			tilesetConfig.palette = config.AddAnonymousPalette(tilesetName);
+		}
+		// Load images from tileset sprite list
 		for (const std::string& spriteName : tilesetConfig.sprites) {
 			auto image = Asset::Image::FromFile(config.inputPath / (spriteName + ".png"));
 			if (!image) {
 				return ApplicationRunError::DATA_INVALID;
 			}
-			images.insert(std::pair{ spriteName, std::move(image.value()) });
+			images.try_emplace(spriteName, std::move(image.value()));
+			paletteToImage[tilesetConfig.palette].push_back(spriteName);
 		}
-		// Get unique colors in sprites
-		std::unordered_map<Asset::Pixel, uint32_t> colorCounts;
-		for (const auto& [key, image] : images) {
-			for (Asset::Pixel p : image.data.data) {
-				colorCounts[p] += 1;
+	}
+	auto& nespal = Asset::Palette::GetInstance();
+	std::unordered_map<std::string, std::array<uint8_t, 4>> resultPalette;
+	for (const auto& [paletteName, imageNames] : paletteToImage) {
+		const auto& colors = config.palettes.at(paletteName).colors;
+		// Check if any of the colors are unspecified
+		std::vector<uint16_t> winners;
+		if (std::find(colors.begin(), colors.end(), std::nullopt) != colors.end()) {
+			// Get unique colors in sprites
+			std::unordered_map<Asset::Pixel, uint32_t> colorCounts;
+			for (const auto& imageName : imageNames) {
+				const auto& image = images.at(imageName);
+				for (Asset::Pixel p : image.data.data) {
+					colorCounts[p] += 1;
+				}
 			}
-		}
-		// Calculate scores for colors (color = candidate = width, pixel = voter = height)
-		MDVector<float> scores(nespal.lab.size(), colorCounts.size());
-		size_t i = 0;
-		for (const auto& [pixel, count] : colorCounts) {
-			Asset::Lab c = PixelToLab(pixel);
-			for (size_t j = 0; j < nespal.lab.size(); j++) {
-				scores.span[j, i] = (c - nespal.lab[j]).length() * count;
+			// Calculate scores for colors (color = candidate = width, pixel = voter = height)
+			MDVector<float> scores(nespal.lab.size(), colorCounts.size());
+			size_t i = 0;
+			for (const auto& [pixel, count] : colorCounts) {
+				Asset::Lab c = PixelToLab(pixel);
+				for (size_t j = 0; j < nespal.lab.size(); j++) {
+					scores.span[j, i] = (c - nespal.lab[j]).length() * count;
+				}
+				i++;
 			}
-			i++;
+			// Get predetermined colors
+			std::vector<uint16_t> fixed;
+			for (auto c : colors) {
+				if (c.has_value()) {
+					fixed.push_back(*c);
+				}
+			}
+			// Get palette
+			auto [_winners, ballots] = Util::ScoredElimination(scores, 4 - fixed.size(), fixed);
+			winners = std::move(_winners);
 		}
-		// Get palette
-		auto [winners, ballots] = Util::ScoredElimination(scores, 4);
-		Util::LogLn("Palette selected winners:");
-		for (auto index : winners) {
-			Util::LogLn("0x{:02X}", nespal.mapDuplicates[index]);
+		// Combine fixed and winners
+		auto& newPal = resultPalette[paletteName];
+		for (size_t i = 0; i < 4; i++) {
+			// Black as a placeholder for if we don't need all palette slots
+			uint8_t val = 0x0F;
+			if (colors[i].has_value()) {
+				val = *colors[i];
+			} else if (winners.size() > 0) {
+				val = winners.back();
+				winners.pop_back();
+			}
+			newPal[i] = nespal.mapDuplicates[val];
 		}
+		Util::LogLn("Palette '{}'", paletteName);
+		for (auto index : newPal) {
+			Util::LogLn("0x{:02X}", index);
+		}
+	}
+	// CREATE TILESET 
+	std::filesystem::create_directories(config.outputPath);
+	for (const auto& [tilesetName, tilesetConfig] : config.tilesets) {
+		Util::LogLn("Tileset '{}'", tilesetName);
 		// Create tileset and add sprites
 		Asset::Tileset tileset;
-		std::copy(winners.begin(), winners.end(), tileset.palette.begin());
-		for (const auto& [imageName, image] : images) {
-			tileset.AddSprite(imageName, image);
+		tileset.palette = resultPalette.at(tilesetConfig.palette);
+		for (const auto& spriteName : tilesetConfig.sprites) {
+			tileset.AddSprite(spriteName, images.at(spriteName));
 		}
 		Util::LogLn("{} Unique tiles", tileset.tiles.size());
+		// Output tileset and nametables
 		tileset.ToPaletteImage().ToFile(config.outputPath / (tilesetName + ".png"));
 		for (const auto& [nametableName, nametable] : tileset.nametables) {
 			std::ofstream nametableFile(config.outputPath / (nametableName + ".nam.bin"), std::ios::out | std::ios::trunc | std::ios::binary);
@@ -85,22 +130,6 @@ std::optional<ApplicationRunError> App::Run(const std::vector<std::string_view>&
 			}
 		}
 	}
-	/*
-	// Load image
-	auto result = LoadImages(config.inputPath);
-	if (!result.has_value()) {
-		return result.error();
-	}
-	// Load NES palette and quantise sprites
-	std::vector<Sprite> sprites;
-	for (const Image& image : result.value()) {
-		sprites.push_back(Sprite::FromImage(image));
-	}
-	// Export Images
-	for (const Sprite& spr : sprites) {
-		spr.SaveSprite(config.outputPath);
-	}
-	*/
 	return std::nullopt;
 }
 

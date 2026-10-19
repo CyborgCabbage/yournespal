@@ -13,7 +13,7 @@ using namespace Util;
 // that works best for a given image
 // TODO
 // Could work out a ballot data structure that would allow for O(1) erasure by value while maintaining sorted order
-SEResult Util::ScoredElimination(const MDVector<float>& scores, uint32_t winnerCount)
+SEResult Util::ScoredElimination(const MDVector<float>& scores, uint32_t winnerCount, std::vector<SEIndex> fixed)
 {
 	assert(winnerCount > 0);
 	assert(winnerCount <= scores.width);
@@ -35,16 +35,19 @@ SEResult Util::ScoredElimination(const MDVector<float>& scores, uint32_t winnerC
 	// Elimination loop
 	// In theory this could be "while(true)" and rely solely on the break
 	// but best to be cautious
-	int maxEliminations = scores.width - winnerCount;
+	int maxEliminations = scores.width - fixed.size() - winnerCount;
 	for (int e = 0; e < maxEliminations; e++) {
 		// Add elimination error from each ballot
 		std::unordered_map<SEIndex, float> eliminationError;
 		for (size_t i = 0; i < ballots.size(); i++) {
 			auto& b = ballots[i];
-			// Add difference in error between first and second choice for this pixel
-			// This is the increase in error this voter would suffer if it could no longer
-			// have its first choice
-			eliminationError[b[0]] += scores.span[b[1], i] - scores.span[b[0], i];
+			// Ignore if the top candidate for this ballot is a fixed candidate
+			if (!std::ranges::contains(fixed, b[0])) {
+				// Add difference in error between first and second choice for this pixel
+				// This is the increase in error this voter would suffer if it could no longer
+				// have its first choice
+				eliminationError[b[0]] += scores.span[b[1], i] - scores.span[b[0], i];
+			}
 		}
 		// Check if enough candidates have been eliminated
 		if (eliminationError.size() <= winnerCount) {
@@ -63,7 +66,9 @@ SEResult Util::ScoredElimination(const MDVector<float>& scores, uint32_t winnerC
 	// Get unique remaining candidates (winners)
 	std::unordered_set<SEIndex> winnersUnique;
 	for (const auto& b : ballots) {
-		winnersUnique.insert(b[0]);
+		if (!std::ranges::contains(fixed, b[0])) {
+			winnersUnique.insert(b[0]);
+		}
 	}
 	std::vector<SEIndex> winners(winnersUnique.begin(), winnersUnique.end());
 	// Get the top choice for each voter (out of the remaining candidates)

@@ -16,7 +16,7 @@ enum class ApplicationParseError {
 
 struct PaletteConfig {
 	// REQUIRED
-	std::array<uint8_t, 4> colors;
+	std::array<std::optional<uint8_t>, 4> colors = { };
 };
 
 struct TilesetConfig {
@@ -24,11 +24,12 @@ struct TilesetConfig {
 	// REQUIRED
 	std::vector<std::string> sprites;
 	// A predefined palette (will be derived from sprites if not given)
-	// OPTIONAL
-	std::optional<std::string> palette;
+	// CAN BE EMPTY
+	std::string palette;
 };
 
 struct AppConfig {
+	std::string AddAnonymousPalette(std::string_view tilesetName);
 	std::filesystem::path inputPath;
 	std::filesystem::path outputPath;
 	// Groups have an ID and each group contains a

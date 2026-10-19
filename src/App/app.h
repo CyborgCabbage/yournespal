@@ -2,6 +2,7 @@
 
 #include <Asset/tileset.h>
 #include <Asset/image.h>
+#include <App/config.h>
 #include <common.h>
 
 namespace App {
@@ -18,6 +19,7 @@ struct AppArguments {
 };
 
 std::optional<ApplicationRunError> Run(const std::vector<std::string_view>& arguments);
+
 std::string ErrorToString(ApplicationRunError error);
 
 }
